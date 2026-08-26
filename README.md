@@ -355,8 +355,10 @@ nada além de papel. O `feira` (camada 2) automatiza a aritmética dele num
 computador. Em cima disso, um agente de IA consulta os dados pelo `feira-mcp`
 (camada 3), uma extensão captura preços da página que você já está vendo (4a), e
 o `feira-fone` pesquisa preço dentro dos aplicativos de entrega no seu celular e
-monta o carrinho (4b) — que é onde o ciclo fecha. **O software para antes do
-pagamento**: finalizar e pagar é sempre a pessoa, à mão, no app do mercado.
+monta o carrinho (4b) — que é onde o ciclo fecha. **O software para no botão de
+pagar**: ele recusa esse toque, e só segue se a pessoa confirmar naquela
+invocação, com `--eu-confirmo`. Quem decide pagar é sempre a pessoa; o toque em
+si pode ser dado pelo programa, depois que ela autorizou.
 Detalhes em [as quatro camadas](docs/explicacao/camadas.md).
 
 ## Conversar com ele
