@@ -54,11 +54,19 @@ jobs:
           done
           python3 -c "import json;json.load(open('extensao/manifest.json'))"
 
-      # The real gate. Five suites: unit arithmetic and the migration rule, the
-      # feira-fone payment gate, the MCP protocol AND its no-payment-capability
-      # invariant, the extension collector, and a freshly created household repo.
+      # The real gate. Six suites: unit arithmetic plus the migration and
+      # replenishment rules, the feira-fone payment gate, the MCP protocol AND
+      # its no-payment-capability invariant, receipt import idempotency, the
+      # extension collector, and a freshly created household repo.
       - name: Test suite
         run: sh tests/run.sh
+
+      # Assets drift silently: a re-render that blows the mobile budget, a
+      # palette edit that drops below WCAG AA, or a README Mermaid block that
+      # stops matching its source file all look fine in review. This ran only
+      # in `make check` locally, so a PR could land any of them. Stdlib only.
+      - name: Asset budgets, contrast and manifest
+        run: python3 scripts/check-assets.py
 
       - name: Installer dry run
         run: sh install.sh --dry-run --prefix /tmp/feira-ci --casa /tmp/casa-ci
