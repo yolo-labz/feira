@@ -116,6 +116,109 @@ feira advise
 O repositório já vem com dados de exemplo, então `feira advise` responde alguma
 coisa desde o primeiro minuto.
 
+## Começar pelas notas que você já tem
+
+Você não precisa digitar meses de compra para o `feira` ter o que dizer. Baixe
+os XML das suas notas fiscais no portal da SEFAZ do seu estado e aponte a pasta:
+
+```sh
+feira nfce ~/notas             # lê e mostra, sem gravar nada
+feira nfce ~/notas --importar  # grava como observações
+```
+
+A leitura é local: o `feira` abre o arquivo que você baixou e não fala com a
+SEFAZ nem com ninguém. **Importar duas vezes é seguro** — cada nota é gravada
+com a chave de acesso, e a segunda passada pula o que já entrou:
+
+```
+imported 0 observations into dados/observacoes.csv
+skipped 3 receipt(s) already imported — matched by access key
+```
+
+Depois de importar, os nomes vêm do jeito que o mercado digitou —
+`ol-soja-liza-900` e `oleo-soja-liza-900ml` são o mesmo óleo, e enquanto
+estiverem separados cada um conta como uma amostra só.
+[Como juntar](docs/how-to/casar-skus.md) leva dez minutos, uma vez.
+
+## O que a casa comprou, e quando
+
+```sh
+feira historico                    # gasto por mês
+feira historico oleo-de-soja       # a linha do tempo de um item
+feira historico --desde 2026-01-01 --mercado atacarejo-online
+```
+
+```
+  2026-07      R$ 72,81  ██████████                2 itens, 3 mercado(s)
+  2026-08     R$ 168,57  ████████████████████████  3 itens, 3 mercado(s)
+
+  oleo-de-soja — 6 compras
+
+    15/07/2026           0.900 L      R$ 7,49  mercado-do-bairro
+    19/07/2026    +4d    1.000 L      R$ 7,90  atacarejo-online
+    …
+    reposição observada: mediana 0.129 L/dia, mais lenta 0.100
+    (ritmo de COMPRA, não de consumo — promoção e estoque mexem nisso)
+```
+
+## O que talvez esteja faltando
+
+```sh
+feira falta
+```
+
+```
+  CONFERIR NA DESPENSA
+    oleo-de-soja        contou 1 há 7 dia(s); num ritmo lento para esta casa
+                        isso já alcança o ponto de recompra
+
+  SEM BASE AINDA (2 itens)
+    arroz-tio-joao-1kg  ritmo irregular demais para estimar — o mais rápido
+                        observado foi 11.7× o mais lento
+    papel-higienico-30m 2 compra(s) nos últimos 365 dias, 1 ciclo(s)
+```
+
+**Uma compra prova que alguém comprou, não que a casa consumiu.** Estoque,
+promoção, visita e viagem mexem no intervalo entre as compras, então este
+comando nunca diz que algo acabou, nunca chuta quanto resta e nunca dá uma data.
+Ele diz **onde vale a pena olhar**.
+
+Ele cala a boca com facilidade, e isso é o recurso funcionando:
+
+| responde `COLETAR` quando | por quê |
+|---|---|
+| menos de 6 compras no último ano | uma ida ao mercado decidiria a resposta sozinha |
+| não há contagem **datada** na despensa | um número sem data não diz se você contou hoje ou em março |
+| o ritmo mais rápido passa de 3× o mais lento | aí não há ritmo — o número seria fruto do maior intervalo, não da casa |
+| a contagem e as compras estão em unidades diferentes | comparar litro com unidade dá um número, nunca uma resposta |
+
+O exemplo do arroz acima é de propósito: quem compra saco de 5 kg no atacarejo
+**e** pacote de 1 kg na esquina tem dois ritmos misturados, e o programa admite
+que não sabe separá-los em vez de inventar uma média.
+
+E a estimativa se apoia num **ritmo lento** da casa — um quartil baixo, não a
+mediana e não o mínimo. O mínimo parece a escolha conservadora e é uma armadilha:
+ele só pode cair conforme você registra mais compras, então o programa ficaria
+mais calado quanto mais aprendesse, e uma viagem de duas semanas calaria o item
+para sempre. Tem um teste no `feira selftest` que quebra se alguém trocar de volta.
+
+## Mandar o pedido para o vendedor
+
+Boa parte do mercado de bairro não tem site — tem um número de WhatsApp. O
+`feira` escreve a mensagem; **enviar é com você**:
+
+```sh
+feira zap                  # o pedido do que está faltando
+feira zap oleo-de-soja     # uma pergunta de preço
+```
+
+Ele imprime o texto e o comando pronto para o
+[`wa`](https://github.com/yolo-labz/wa) — um daemon de WhatsApp com lista de
+permissão por número, limite de taxa sem `--force` e registro do que saiu. O
+`feira` não tem código de rede, não guarda o seu número e não consegue enviar
+nada: [a mesma fronteira do pagamento](docs/how-to/whatsapp-com-o-wa.md), pelo
+mesmo motivo.
+
 ## O ciclo completo — o celular
 
 O destino do projeto — e o que o `feira-fone` está construindo — é este: **um
