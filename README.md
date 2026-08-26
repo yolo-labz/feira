@@ -42,9 +42,14 @@ Na maior parte das semanas a resposta é **não**, e ele diz isso. Trocar de
 mercado custa frete, pedido mínimo e tempo — por isso existe um limiar, e por
 isso o veredito mais comum é *não mude nada*.
 
-**O que ele nunca faz:** consultar preço na internet por conta própria, comprar,
-pagar, ou prometer uma porcentagem de economia. (A [extensão](extensao/) lê
-preços — mas só da página que **você** abriu, quando **você** clica.)
+A pesquisa de preço acontece **nas suas próprias contas**: a
+[extensão](extensao/) lê a página que você abriu, e o
+[`feira-fone`](#o-ciclo-completo--o-celular) lê os aplicativos de entrega no seu
+celular. Nada disso é um servidor consultando um catálogo por aí — é o que a sua
+conta vê, no seu aparelho.
+
+**O que ele nunca faz:** comprar, pagar, ou prometer uma porcentagem de
+economia.
 
 ## A demo
 
@@ -110,11 +115,42 @@ feira advise
 O repositório já vem com dados de exemplo, então `feira advise` responde alguma
 coisa desde o primeiro minuto.
 
+## O ciclo completo — o celular
+
+O destino do projeto é este, e vale dizer sem rodeio: **um agente que pesquisa
+preço dentro dos aplicativos de entrega, no seu celular, monta o carrinho, e
+para.** Você confere e finaliza a compra com o dedo, no app.
+
+```
+  agente  →  celular  →  apps de entrega  →  preços → histórico
+                                                          ↓
+              você finaliza  ←  carrinho montado  ←  decisão
+```
+
+Por que o último passo é seu, e continua sendo: um agente que erra uma compra de
+R$ 30 apaga em confiança a economia de um mês, e quem discute com o mercado e com
+a operadora do cartão é você. **Não é limitação técnica — é onde a fronteira
+foi posta de propósito.** No `feira-fone` isso é código: tocar num botão de
+pagamento é recusado sem `--eu-confirmo` naquela invocação, e não existe modo
+"confirmar sempre". No servidor MCP a fronteira é mais forte ainda: a ferramenta
+de pagamento **não existe**.
+
+**Isto exige hardware:** um celular Android certificado, com depuração ligada,
+ligado à máquina. Emulador não resolve — aplicativos de entrega que guardam
+cartão usam o Play Integrity, que é verificação do lado do servidor contra
+hardware certificado, e AVD, Waydroid, redroid e BlueStacks falham exatamente no
+passo do pagamento. Aferido em 25/08/2026;
+[o levantamento](docs/pesquisa/harness-de-login.md).
+
+Sem o aparelho, as camadas 1 a 3 funcionam sozinhas e já respondem *onde comprar*
+— o que falta é quem aperta os botões.
+[Como montar](skills/feira-pedido/referencia/tier-3-android.md).
+
 ## Por que não é mais um comparador de preços
 
 | | Comparador de preços | `feira` |
 |---|---|---|
-| De onde vem o preço | anunciado pela loja | **o que você pagou**, da sua nota fiscal |
+| De onde vem o preço | anunciado pela loja | **o que você pagou** (nota fiscal) e o que a **sua conta** vê no app |
 | O que ele sabe da sua casa | nada | o que vocês consomem e a que preço |
 | A quem ele serve | à loja que paga o anúncio | à sua casa |
 | A resposta honesta, na maioria das semanas | "compre aqui" | "**não mude nada**" |
@@ -122,8 +158,8 @@ coisa desde o primeiro minuto.
 
 ## As quatro camadas
 
-Comece pela primeira. Cada uma é opcional em cima da anterior, e **a maior parte
-do valor está nas duas primeiras**.
+Cada camada acrescenta à anterior. As duas primeiras já economizam dinheiro
+sozinhas e não exigem nada; a quarta é onde o ciclo fecha.
 
 ```mermaid
 flowchart TD
@@ -151,17 +187,12 @@ flowchart TD
 
 **Em prosa, para quem usa leitor de tela:** o método (camada 1) não precisa de
 nada além de papel. O `feira` (camada 2) automatiza a aritmética dele num
-computador. Em cima disso, um agente de IA pode consultar os dados pelo
-`feira-mcp` (camada 3), uma extensão pode capturar preços da página que você já
-está vendo (4a), e o `feira-fone` pode montar o carrinho no aplicativo do mercado
-(4b). **O software para antes do pagamento**: finalizar e pagar é sempre a
-pessoa, à mão. Detalhes em [as quatro camadas](docs/explicacao/camadas.md).
-
-Sobre a 4b: **emulador não resolve.** Aplicativos de entrega brasileiros que
-guardam cartão usam o Play Integrity, que é verificação do lado do servidor
-contra hardware certificado — AVD, Waydroid, redroid e BlueStacks falham no passo
-do pagamento. Aferido em 25/08/2026;
-[o levantamento](docs/pesquisa/harness-de-login.md).
+computador. Em cima disso, um agente de IA consulta os dados pelo `feira-mcp`
+(camada 3), uma extensão captura preços da página que você já está vendo (4a), e
+o `feira-fone` pesquisa preço dentro dos aplicativos de entrega no seu celular e
+monta o carrinho (4b) — que é onde o ciclo fecha. **O software para antes do
+pagamento**: finalizar e pagar é sempre a pessoa, à mão, no app do mercado.
+Detalhes em [as quatro camadas](docs/explicacao/camadas.md).
 
 ## Conversar com ele
 
@@ -234,11 +265,19 @@ automatizar qualquer coisa que gaste dinheiro.
 
 ### In English
 
-**feira** compares what your household paid for groceries — entered by hand or
-parsed from Brazilian NFC-e electronic receipts — normalised to price per
-kg/L/unit, and only recommends switching shops when the gap clears a threshold
-(8% by default) with enough samples (3). Most weeks it says *stay put*, which is
-the point.
+**feira** compares what your household paid for groceries — entered by hand,
+parsed from Brazilian NFC-e electronic receipts, or read out of the delivery apps
+on your own phone — normalised to price per kg/L/unit, and only recommends
+switching shops when the gap clears a threshold (8% by default) with enough
+samples (3). Most weeks it says *stay put*, which is the point.
+
+The full loop is an agent that researches prices **inside the delivery apps on a
+phone you own**, builds the cart, and then stops. You check it and tap pay
+yourself. That last step is a deliberate boundary, not a missing feature: an
+agent that gets one R$ 30 order wrong costs more in trust than the method saves
+in a month, and it is you, not the software, who argues with the shop and the
+card issuer. It needs real hardware — a certified Android handset; emulators fail
+Play Integrity precisely at the payment step.
 
 Plain-text data, stdlib Python, zero runtime dependencies, no API key. The
 installed tool makes **no network calls**. It ships an MCP server over stdio with
