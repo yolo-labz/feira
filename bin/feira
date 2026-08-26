@@ -317,8 +317,11 @@ def today() -> str:
 # observed replenishment rate.
 # ---------------------------------------------------------------------------
 
-MIN_EVENTOS = 6           # 6 purchases == 5 cycles; below this a single trip decides the answer
-IRREGULAR_RAZAO = 2.0     # fastest/slowest cycle beyond this and the history is lumpy
+MIN_EVENTOS = 6              # 6 dated trips == 5 cycles; fewer and one trip decides the answer
+JANELA_REPOSICAO_DIAS = 365  # a rhythm from two years ago is not this year's rhythm
+IRREGULAR_NOTA = 2.0         # fastest/slowest beyond this: say the history is lumpy
+IRREGULAR_LIMITE = 3.0       # and beyond this there is no rhythm to speak of
+QUANTIL_CONSERVADOR = 0.25   # which end of the observed rates the estimate leans on
 
 
 def purchase_events(rows: list[dict]) -> list[dict]:
@@ -329,21 +332,35 @@ def purchase_events(rows: list[dict]) -> list[dict]:
     sack and a 1 kg bag are commensurable.
     """
     by_day: dict[dt.date, dict] = {}
+    descartadas = 0
     for row in rows:
+        when = _iso_date(str(row.get("data", ""))[:10])
         try:
-            when = dt.date.fromisoformat(row["data"][:10])
-        except (ValueError, KeyError, TypeError):
+            conteudo = float(row.get("_conteudo") or 0.0)
+        except (TypeError, ValueError):
+            conteudo = 0.0
+        if when is None or not math.isfinite(conteudo) or conteudo <= 0:
+            descartadas += 1
             continue
-        conteudo = row.get("_conteudo") or 0.0
-        if not math.isfinite(conteudo) or conteudo <= 0:
-            continue
-        ev = by_day.setdefault(when, {"data": when, "quantidade": 0.0, "base": row.get("_base") or "un",
-                                      "gasto": 0.0, "mercados": set()})
+        preco = row.get("_preco") or 0.0
+        ev = by_day.setdefault(when, {"data": when, "quantidade": 0.0, "bases": set(),
+                                      "gasto": 0.0, "mercados": set(), "descartadas": 0})
         ev["quantidade"] += conteudo
-        ev["gasto"] += row.get("_preco") or 0.0
+        ev["gasto"] += preco if isinstance(preco, (int, float)) and math.isfinite(preco) else 0.0
+        ev["bases"].add(row.get("_base") or "")
         if row.get("mercado"):
             ev["mercados"].add(row["mercado"])
-    return [by_day[d] for d in sorted(by_day)]
+    eventos = [by_day[d] for d in sorted(by_day)]
+    for ev in eventos:
+        bases = {b.strip().casefold() for b in ev["bases"] if b.strip()}
+        ev["base"] = bases.pop() if len(bases) == 1 else ""
+    if eventos:
+        # Rows that could not be read are reported, never swallowed. A dropped
+        # row lowers the count AND widens the gap around it, so silence here
+        # would make the tool claim 'not enough data' to somebody staring at a
+        # full spreadsheet — usually because a spreadsheet rewrote the dates.
+        eventos[0]["descartadas"] = descartadas
+    return eventos
 
 
 def cycle_rates(events: list[dict]) -> list[float]:
@@ -373,6 +390,23 @@ def _median(values: list[float]) -> float:
     return s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2
 
 
+def _low_quantile(values: list[float], q: float = QUANTIL_CONSERVADOR) -> float:
+    """Nearest-rank low quantile — conservative without being an extreme.
+
+    The obvious conservative pick is min(), and it is wrong in a way that is easy
+    to miss: min() is an order statistic that can only FALL as cycles are added.
+    The more history a household records, the slower the tool would assume they
+    consume, so it would go blind exactly as it learns — and one holiday gap
+    would suppress every future warning for good. A low quantile converges on
+    the slow end of the real distribution instead of collapsing onto its worst
+    single observation.
+    """
+    s = sorted(values)
+    if not s:
+        return math.nan
+    return s[max(0, math.ceil(q * len(s)) - 1)]
+
+
 def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: float,
                           hoje: dt.date | None = None) -> dict:
     """Decide whether an item is worth walking to the cupboard for.
@@ -389,45 +423,73 @@ def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: floa
       MANTER   — everything else
     """
     hoje = hoje or dt.date.today()
-    n = len(events)
+    perdidas = events[0].get("descartadas", 0) if events else 0
+    sobra = (f" — e {perdidas} linha(s) do CSV não foram lidas: confira data e "
+             f"quantidade") if perdidas else ""
+
+    # A rhythm from two years ago is not this year's rhythm, and one ancient gap
+    # would otherwise anchor the estimate for good.
+    corte = hoje - dt.timedelta(days=JANELA_REPOSICAO_DIAS)
+    recentes = [e for e in events if e["data"] >= corte]
+
+    n = len(recentes)
     if n < MIN_EVENTOS:
         return {"acao": "coletar",
-                "razao": f"{n} compra(s) registradas, {max(n - 1, 0)} ciclo(s) — "
-                         f"são precisas {MIN_EVENTOS} para estimar reposição"}
+                "razao": f"{n} compra(s) nos últimos {JANELA_REPOSICAO_DIAS} dias, "
+                         f"{max(n - 1, 0)} ciclo(s) — são precisas {MIN_EVENTOS} "
+                         f"para estimar reposição{sobra}"}
 
-    rates = cycle_rates(events)
+    rates = cycle_rates(recentes)
     if not rates:
         return {"acao": "coletar", "razao": "todas as compras caem no mesmo dia — não há ciclo"}
 
     lento, rapido = min(rates), max(rates)
+    dispersao = rapido / lento if lento > 0 else math.inf
+    conservador = _low_quantile(rates)
     info = {
         "ciclos": len(rates),
-        "taxa_lenta": lento,
+        "taxa_conservadora": conservador,
         "taxa_mediana": _median(rates),
-        "irregular": bool(lento > 0 and rapido / lento > IRREGULAR_RAZAO),
-        "ultima_compra": events[-1]["data"].isoformat(),
+        "taxa_lenta": lento,
+        "taxa_rapida": rapido,
+        "irregular": bool(dispersao > IRREGULAR_NOTA),
+        "ultima_compra": recentes[-1]["data"].isoformat(),
+        "descartadas": perdidas,
     }
+
+    # Past a certain lumpiness there is no rhythm to speak of, and any number
+    # printed would be an artefact of whichever gap happened to be longest.
+    # Printing "(histórico irregular)" beside a confident verdict, as an earlier
+    # draft of this did, is having it both ways.
+    if dispersao > IRREGULAR_LIMITE:
+        return {**info, "acao": "coletar",
+                "razao": f"ritmo irregular demais para estimar — o mais rápido observado "
+                         f"foi {dispersao:.1f}× o mais lento{sobra}"}
 
     if not despensa or despensa.get("quantidade") is None or not despensa.get("confirmado_em"):
         return {**info, "acao": "coletar",
-                "razao": "sem contagem datada na despensa — anote quanto tem e quando contou"}
-    if despensa.get("unidade") and despensa["unidade"] != events[-1]["base"]:
+                "razao": f"sem contagem datada na despensa — anote quanto tem e quando contou{sobra}"}
+
+    unidade = (despensa.get("unidade") or "").strip().casefold()
+    bases = {(e.get("base") or "").strip().casefold() for e in recentes}
+    if not unidade or bases != {unidade}:
         return {**info, "acao": "coletar",
-                "razao": f"a contagem está em {despensa['unidade']} e o item é medido "
-                         f"em {events[-1]['base']} — não dá para comparar"}
+                "razao": f"a contagem está em '{unidade or '?'}' e as compras em "
+                         f"'{'/'.join(sorted(b or '?' for b in bases))}' — não dá para comparar"}
 
     contado = despensa["quantidade"]
     idade = (hoje - despensa["confirmado_em"]).days
-    restante = contado - max(idade, 0) * lento
+    restante = contado - max(idade, 0) * conservador
     info.update({"contado": contado, "contado_em": despensa["confirmado_em"].isoformat(),
                  "idade_dias": idade, "folga": restante, "ponto": ponto})
 
-    if idade <= 1 and contado <= ponto:
-        return {**info, "acao": "repor", "razao": f"contagem de hoje: {contado:g} — no ponto de recompra"}
+    if 0 <= idade <= 1 and contado <= ponto:
+        return {**info, "acao": "repor",
+                "razao": f"contagem de hoje: {contado:g} — no ponto de recompra"}
     if restante <= ponto:
         return {**info, "acao": "conferir",
-                "razao": f"contou {contado:g} há {idade} dia(s); no ritmo mais lento já observado "
-                         f"isso alcança o ponto de recompra"}
+                "razao": f"contou {contado:g} há {idade} dia(s); num ritmo lento para esta "
+                         f"casa isso já alcança o ponto de recompra"}
     return {**info, "acao": "manter", "razao": f"contagem de {idade} dia(s) atrás ainda tem folga"}
 
 
@@ -436,11 +498,8 @@ def summarise(observations: list[dict], janela_dias: int) -> dict[str, dict]:
     cutoff = dt.date.today() - dt.timedelta(days=int(janela_dias))
     by_merchant: dict[str, dict] = {}
     for row in observations:
-        try:
-            when = dt.date.fromisoformat(row["data"][:10])
-        except (ValueError, KeyError):
-            continue
-        if when < cutoff or not math.isfinite(row["_unitario"]):
+        when = _iso_date(str(row.get("data", ""))[:10])
+        if when is None or when < cutoff or not math.isfinite(row["_unitario"]):
             continue
         entry = by_merchant.setdefault(
             row["mercado"] or "?",
@@ -891,7 +950,7 @@ def cmd_falta(args) -> int:
     if grupos["conferir"]:
         print("\n  CONFERIR NA DESPENSA")
         for v in sorted(grupos["conferir"], key=lambda x: x.get("folga", 0)):
-            marca = "  (histórico irregular)" if v.get("irregular") else ""
+            marca = "  (ritmo variável — olhe com mais atenção)" if v.get("irregular") else ""
             print(f"    {v['sku']:<38} {v['razao']}{marca}")
     if grupos["coletar"]:
         n = len(grupos["coletar"])
@@ -916,7 +975,8 @@ def _ansi_c_quote(text: str) -> str:
     is on the other end. Printing a command that looks right and sends garbage is
     worse than printing none.
     """
-    escaped = text.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
+    limpo = "".join(c for c in text if c == "\n" or (ord(c) >= 32 and ord(c) != 127))
+    escaped = limpo.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n")
     return f"$'{escaped}'"
 
 
@@ -997,11 +1057,17 @@ def cmd_nfce(args) -> int:
             for row in casa.read_observations()
             if row.get("fonte") == "nfce" and row.get("observacao", "").strip()
         }
+        # Keys written before this was idempotent were truncated to 12 chars and
+        # cannot be matched: the first 12 are UF + year-month + part of the CNPJ,
+        # so every receipt from one shop in one month shares them, and matching on
+        # the prefix would skip genuinely new receipts. Say so instead of guessing.
+        antigas = sum(1 for k in ja_importadas if len(k) == 12)
         n = repetidas = 0
         for r in receipts:
             if r["chave"] and r["chave"] in ja_importadas:
                 repetidas += 1
                 continue
+            ja_importadas.add(r["chave"])   # the same file twice in one batch is still twice
             for item in r["itens"]:
                 casa.append_observation({
                     "data": r["data"],
@@ -1018,6 +1084,10 @@ def cmd_nfce(args) -> int:
         print(f"imported {n} observations into {casa.observacoes.relative_to(casa.root)}")
         if repetidas:
             print(f"skipped {repetidas} receipt(s) already imported — matched by access key")
+        if antigas:
+            print(f"warning: {antigas} row(s) were imported by an older version that stored a")
+            print("         truncated key, so they cannot be matched and may now be duplicated.")
+            print("         See docs/how-to/casar-skus.md if your history looks doubled.")
         if n:
             print("note: SKUs came from the receipt description and will need merging —")
             print("      see docs/how-to/casar-skus.md")
@@ -1159,16 +1229,50 @@ def cmd_selftest(args) -> int:
     eq("plenty in the cupboard -> manter",
        replenishment_verdict(seis, {**conta, "quantidade": 40.0}, 2.0, hoje_t)["acao"], "manter")
 
-    # The conservative choice, stated as a check so it cannot be tuned away:
-    # one long gap must make the tool quieter, never louder.
-    irregular = [ev(0, 1), ev(7, 1), ev(14, 1), ev(21, 1), ev(28, 1), ev(120, 1)]
     velho = {"quantidade": 3.0, "unidade": "kg", "confirmado_em": dt.date(2026, 1, 1),
              "ponto_de_recompra": 1.0}
     depois = dt.date(2026, 1, 21)
-    eq("a long gap widens the estimate, it does not trim",
-       replenishment_verdict(irregular, velho, 1.0, depois)["acao"], "manter")
-    eq("without the gap the same count is worth checking",
+    eq("a steady history is worth checking",
        replenishment_verdict(seis, velho, 1.0, depois)["acao"], "conferir")
+
+    # A history with no rhythm must be admitted, not dressed up. Printing a
+    # confident verdict with an "irregular" footnote is having it both ways.
+    irregular = [ev(0, 1), ev(7, 1), ev(14, 1), ev(21, 1), ev(28, 1), ev(120, 1)]
+    eq("no rhythm -> refuse, do not annotate",
+       replenishment_verdict(irregular, velho, 1.0, depois)["acao"], "coletar")
+
+    # THE FALSIFIER for the estimator itself. min() looks like the conservative
+    # pick and is a trap: it can only fall as cycles arrive, so recording MORE
+    # history would make the tool quieter until it never speaks. Here a seventh
+    # purchase adds one slower cycle; a min()-based estimate flips this to
+    # 'manter', a low-quantile one holds. If this ever reads 'manter' again,
+    # somebody swapped the quantile back for an extreme.
+    firme = [ev(d, 7) for d in (0, 7, 14, 21, 28, 35)]
+    mais_lento = firme + [ev(49, 7)]
+    conta10 = {"quantidade": 10.0, "unidade": "kg", "ponto_de_recompra": 2.0,
+               "confirmado_em": dt.date(2026, 1, 1) + dt.timedelta(days=49)}
+    oito_dias_depois = dt.date(2026, 1, 1) + dt.timedelta(days=57)
+    eq("steady history says check",
+       replenishment_verdict(firme, {**conta10, "confirmado_em": dt.date(2026, 1, 1)
+                                     + dt.timedelta(days=35)},
+                             2.0, dt.date(2026, 1, 1) + dt.timedelta(days=43))["acao"], "conferir")
+    eq("one slower cycle must not blind it",
+       replenishment_verdict(mais_lento, conta10, 2.0, oito_dias_depois)["acao"], "conferir")
+
+    # Brazilian dates from a spreadsheet must not vanish. Silently dropping them
+    # would make the tool answer 'not enough data' to somebody looking at a full
+    # CSV, which is the most confusing lie it could tell.
+    br = purchase_events([{"data": "14/06/2026", "mercado": "a", "_conteudo": 1.0,
+                           "_base": "kg", "_preco": 5.0}])
+    eq("DD/MM/YYYY is read, not dropped", len(br), 1)
+    ruim = purchase_events([{"data": "nao-e-data", "mercado": "a", "_conteudo": 1.0,
+                             "_base": "kg", "_preco": 5.0},
+                            {"data": "2026-06-14", "mercado": "a", "_conteudo": 1.0,
+                             "_base": "kg", "_preco": 5.0}])
+    eq("unreadable rows are counted, not swallowed", ruim[0]["descartadas"], 1)
+
+    eq("control characters never reach the terminal",
+       "\x1b" in _ansi_c_quote("a\x1b[31mb"), False)
 
     # The seller message must survive quoting with its line breaks intact.
     eq("newline survives shell quoting", _ansi_c_quote("a\nb"), "$'a\\nb'")

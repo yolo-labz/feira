@@ -169,25 +169,38 @@ feira falta
 
 ```
   CONFERIR NA DESPENSA
-    oleo-de-soja        contou 1 há 7 dia(s); no ritmo mais lento já observado
-                        isso alcança o ponto de recompra
+    oleo-de-soja        contou 1 há 7 dia(s); num ritmo lento para esta casa
+                        isso já alcança o ponto de recompra
 
-  SEM BASE AINDA (1 item)
-    papel-higienico-30m 2 compra(s) registradas, 1 ciclo(s) — são precisas 6
-
-  MANTER: 1 item com folga
+  SEM BASE AINDA (2 itens)
+    arroz-tio-joao-1kg  ritmo irregular demais para estimar — o mais rápido
+                        observado foi 11.7× o mais lento
+    papel-higienico-30m 2 compra(s) nos últimos 365 dias, 1 ciclo(s)
 ```
 
 **Uma compra prova que alguém comprou, não que a casa consumiu.** Estoque,
 promoção, visita e viagem mexem no intervalo entre as compras, então este
 comando nunca diz que algo acabou, nunca chuta quanto resta e nunca dá uma data.
-Ele diz **onde vale a pena olhar** — e só fala depois de 6 compras do item e de
-uma contagem datada na despensa. Sem isso, responde `COLETAR`.
+Ele diz **onde vale a pena olhar**.
 
-A aposta é deliberadamente conservadora: o teste usa o **ritmo mais lento já
-observado**, não a mediana. Um alarme falso custa uma ida perdida ao mercado e,
-depois de alguns, a confiança no programa inteiro. Ficar calado custa uma
-segunda olhada semana que vem.
+Ele cala a boca com facilidade, e isso é o recurso funcionando:
+
+| responde `COLETAR` quando | por quê |
+|---|---|
+| menos de 6 compras no último ano | uma ida ao mercado decidiria a resposta sozinha |
+| não há contagem **datada** na despensa | um número sem data não diz se você contou hoje ou em março |
+| o ritmo mais rápido passa de 3× o mais lento | aí não há ritmo — o número seria fruto do maior intervalo, não da casa |
+| a contagem e as compras estão em unidades diferentes | comparar litro com unidade dá um número, nunca uma resposta |
+
+O exemplo do arroz acima é de propósito: quem compra saco de 5 kg no atacarejo
+**e** pacote de 1 kg na esquina tem dois ritmos misturados, e o programa admite
+que não sabe separá-los em vez de inventar uma média.
+
+E a estimativa se apoia num **ritmo lento** da casa — um quartil baixo, não a
+mediana e não o mínimo. O mínimo parece a escolha conservadora e é uma armadilha:
+ele só pode cair conforme você registra mais compras, então o programa ficaria
+mais calado quanto mais aprendesse, e uma viagem de duas semanas calaria o item
+para sempre. Tem um teste no `feira selftest` que quebra se alguém trocar de volta.
 
 ## Mandar o pedido para o vendedor
 

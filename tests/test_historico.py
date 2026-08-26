@@ -97,9 +97,25 @@ with tempfile.TemporaryDirectory() as tmp:
     check("and imports zero", "imported 0 observations" in segunda.stdout, True)
 
     # The access key is what makes that possible, so it must be stored whole:
-    # truncate it and two receipts from the same shop on the same day collide.
+    # the first 12 chars are UF + year-month + part of the CNPJ, which every
+    # receipt from one shop in one month shares.
     chave = "26260812345678000199650010000000011000000017"
     check("access key stored in full", chave in linhas_nfce(casa)[0], True)
+
+    # The same receipt reaching one batch twice — a copied file, or a folder
+    # passed alongside a file inside it — is still the same receipt.
+    (notas / "copia.xml").write_text(NFCE, encoding="utf-8")
+    feira(casa, "nfce", "notas/agosto.xml", "notas/copia.xml", "--importar")
+    check("a repeat inside one batch is caught too", len(linhas_nfce(casa)), 2)
+
+    # A history imported by the old truncated-key version cannot be matched.
+    # Guessing would be worse than saying so, so it must say so.
+    legado = casa / "dados" / "observacoes.csv"
+    legado.write_text(
+        legado.read_text(encoding="utf-8").replace(chave, chave[:12]), encoding="utf-8")
+    aviso = feira(casa, "nfce", "notas", "--importar")
+    check("legacy truncated keys are disclosed",
+          "truncated key" in aviso.stdout, True)
 
     # -- history by date ----------------------------------------------------
     hist = feira(casa, "historico", "--json")
@@ -127,6 +143,12 @@ with tempfile.TemporaryDirectory() as tmp:
     # the tool must decline rather than guess.
     coletar = [v["sku"] for v in falta["coletar"]]
     check("under-sampled item refuses to guess", "papel-higienico-30m" in coletar, True)
+
+    # Interleaved 1 kg top-ups and 5 kg sacks are two rhythms in one series. The
+    # honest answer is that it cannot separate them, not an invented average.
+    razoes = {v["sku"]: v["razao"] for v in falta["coletar"]}
+    check("a lumpy rhythm is admitted, not averaged",
+          "irregular" in razoes.get("arroz-tio-joao-1kg", ""), True)
 
     texto = feira(casa, "falta").stdout
     for proibido in ["acabou", "está sem", "vai acabar", "% de chance", "compre agora"]:

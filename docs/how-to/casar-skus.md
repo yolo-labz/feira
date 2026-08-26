@@ -76,6 +76,29 @@ Pode rodar a pasta inteira de novo depois de baixar mais notas, sem medo de
 duplicar o histórico. Duplicata aqui não dá erro — ela só torce silenciosamente
 toda mediana daí para a frente, que é bem pior.
 
+**Uma exceção, se você usou uma versão anterior.** Até esta mudança, a chave era
+gravada cortada em 12 caracteres, e chave cortada não dá para casar: os 12
+primeiros dígitos são UF, ano-mês e parte do CNPJ, então **todas** as notas do
+mesmo mercado no mesmo mês começam igual. Casar por prefixo pularia nota nova de
+verdade, o que é pior que duplicar. Por isso o `feira` avisa em vez de adivinhar:
+
+```
+warning: 34 row(s) were imported by an older version that stored a
+         truncated key, so they cannot be matched and may now be duplicated.
+```
+
+Se isso aparecer e o histórico parecer dobrado, a saída é apagar as linhas com
+`fonte=nfce` e importar a pasta de novo, uma vez só:
+
+```sh
+grep -v ',nfce,' dados/observacoes.csv > /tmp/limpo.csv && mv /tmp/limpo.csv dados/observacoes.csv
+feira nfce ~/notas --importar
+```
+
+A coluna `observacao` guarda a chave, e é ela que faz a checagem funcionar — se
+você reescrever essa célula à mão, aquela nota perde a proteção e pode entrar
+duas vezes.
+
 ---
 
 Volta para [o apêndice técnico](../03-apendice-tecnico.md) ·
