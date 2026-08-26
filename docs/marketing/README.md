@@ -17,20 +17,25 @@ perceber.
 
 ### Uma linha (até 120 caracteres — descrição do repositório, bio)
 
-> Compare o preço que sua casa realmente pagou, por quilo — e só troque de mercado quando compensa.
+> Um agente que pesquisa preço no app do mercado e monta o carrinho no seu celular — o pagamento continua seu.
 
 Variante em inglês para os tópicos e a busca do GitHub:
 
-> Brazilian household grocery price tool — normalises what you actually paid to price per kg/L, local-first, no API key.
+> An agent that prices groceries inside the delivery apps on your own Android phone and builds the cart — you tap pay.
+
+**Nas duas, a segunda metade não é opcional.** Cortar "o pagamento continua seu"
+para caber num limite de caracteres transforma a descrição na promessa que o
+projeto passou quatro revisões recusando fazer.
 
 ### Três frases (post curto, apresentação, README de diretório)
 
-> O `feira` compara o preço que a sua casa **realmente pagou** por mercado —
-> extraído da nota fiscal eletrônica — normalizado por quilo, litro ou unidade.
-> Ele só recomenda trocar de mercado quando a diferença passa de 8% com pelo
-> menos 3 observações; na maior parte das semanas a resposta é "não mude nada".
-> Os dados ficam em arquivos de texto na sua máquina, e o software nunca compra
-> nem paga: quem finaliza é você, à mão, no aplicativo do mercado.
+> O `feira` é um agente que lê preço **dentro dos aplicativos de entrega, no seu
+> próprio celular**, decide comparando por quilo ou litro em vez da etiqueta, e
+> monta o carrinho no aparelho. Aí ele para: tocar no botão de pagar é recusado
+> em código, e no servidor MCP a ferramenta de pagar nem existe — quem finaliza
+> é você, à mão, no app. A camada do celular é **experimental** e exige um
+> Android físico homologado; abaixo dela, o método e o CLI decidem *o que
+> comprar e onde* sozinhos, sem celular nenhum.
 
 ### Longa (página de projeto, submissão, e-mail)
 
@@ -70,7 +75,10 @@ Cada linha é uma coisa que a gente pode dizer em público, e onde alguém confe
 | Zero dependência de runtime | ✅ verificável | só stdlib; `import` no fonte; CI sem `pip install` |
 | Nenhuma chamada de rede no CLI | ✅ verificável | ausência de `urllib`/`socket`/`http` em `bin/feira` |
 | MCP não tem ferramenta de pedido nem pagamento | ✅ verificável | `tests/test_mcp.py`, incluindo teste negativo |
-| `feira-fone` recusa botão de pagamento | ✅ verificável | lista `PERIGO` + `tests/test_fone.py` |
+| `feira-fone` recusa botão de pagamento | ✅ verificável | lista `PERIGO` + `tests/test_fone.py`; e a demo grava a recusa acontecendo |
+| Lê preço e monta carrinho num Android físico | ✅ verificável, **com a ressalva da vitrine** | `demo-fone.cast` é uma gravação real; a loja é `vitrine-fixture.html`, não um app de entrega |
+| `feira-fone` funciona no iFood / Rappi / app X | ❌ **NÃO AFIRMAR** | nenhum aplicativo de entrega real foi automatizado; não há lista de apps suportados |
+| A camada do celular está pronta para usar | ❌ **NÃO AFIRMAR** | experimental: uma casa, um aparelho, sem release |
 | Instalador não roda como root, instala só no `$HOME` | ✅ verificável | `install.sh`; teste ponta a ponta no CI |
 | Emulador Android falha no pagamento (Play Integrity) | ⚠️ raciocinado, não testado por nós | `docs/pesquisa/harness-de-login.md`, aferido 25/08/2026 — **dizer sempre com a data** |
 | Roda numa casa em Recife desde maio/2026 | ⚠️ relato do autor | `docs/01-o-caso.md` — não é prova pública |
@@ -93,6 +101,11 @@ Estas foram testadas e reprovadas em duas revisões adversariais (25 e
   econômica. Diga: "a política padrão não recomenda trocar abaixo de 8%"
 - ❌ "não exige chave de API de ninguém" — o `feira` não exige; o cliente de IA
   pode exigir
+- ❌ "faz sua compra no iFood" / "compra sozinho no app do mercado" — nenhum
+  aplicativo de entrega real foi automatizado, e o software não compra em
+  lugar nenhum. Diga: "monta o carrinho; quem finaliza é você"
+- ❌ Publicar o GIF do celular sem dizer que a vitrine é de exemplo — a imagem
+  sozinha faz o espectador concluir que o app é real
 - ❌ "nunca foi instalado por outra pessoa" — indemonstrável. Diga: "não há
   instalação externa conhecida"
 
@@ -127,15 +140,27 @@ primeira sem serem pegas:
 |---|---|---|---|
 | Preview social | `docs/assets/rendered/social-preview.png` | ajuste do repositório no GitHub; unfurl de link | 1280×640 (2:1); recorte central em X/Slack |
 | Herói do README | mesma imagem, a 640 px | topo do README | — |
-| Demo animada | `docs/assets/rendered/demo.gif` | README; post técnico | 921×628, ~78 KB |
-| Demo estática | `docs/assets/rendered/demo.png` | onde GIF não roda; e-mail | 921×628 |
-| Demo em texto | `docs/assets/source/demo.cast` | leitor de tela; quem prefere texto | — |
+| Demo do celular | `docs/assets/rendered/demo-fone.gif` | herói do README; qualquer peça sobre o produto | 921×628, ~281 KB |
+| Demo do celular, estática | `docs/assets/rendered/demo-fone.png` | onde GIF não roda; e-mail | 921×628 |
+| Demo do CLI | `docs/assets/rendered/demo.gif` | post técnico; seção do CLI | 921×628, ~78 KB |
+| Demo do CLI, estática | `docs/assets/rendered/demo.png` | onde GIF não roda | 921×628 |
+| Demo em texto | `docs/assets/source/demo-fone.cast`, `demo.cast` | leitor de tela; quem prefere texto | — |
 | Marca | `docs/assets/source/logo.svg` | avatar da organização, favicon | quadrado, legível a 16 px |
 | Diagrama | bloco Mermaid no README | README; slide | renderizado pelo GitHub |
 
 Texto alternativo de cada uma: em [`MANIFEST.md`](../assets/MANIFEST.md) e nas
 tags `alt` do próprio README. Não republique uma peça sem o texto alternativo
 junto.
+
+**A demo do celular vem com uma legenda obrigatória.** A gravação é real — o
+aparelho, o `adb`, a leitura da tela e a recusa —, mas a loja é uma vitrine de
+mentira. Toda republicação precisa dizer isso, com essas palavras ou parecidas:
+
+> Gravação real num Android físico. A vitrine é uma página de exemplo, não um
+> aplicativo de entrega — nenhuma conta real foi automatizada para esta peça.
+
+Publicar o GIF sem essa linha deixa o espectador concluir que o `feira` já
+dirige o iFood, que é exatamente a alegação que o projeto não sustenta hoje.
 
 ## Antes de publicar qualquer coisa
 

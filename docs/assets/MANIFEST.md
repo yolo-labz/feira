@@ -13,8 +13,11 @@ Regenerar tudo: `make assets`. Conferir: `make check-assets` (roda no CI).
 | `logo.svg` | a marca: etiqueta de preço com a barra de fração vazada | escrito à mão | Apache-2.0 (deste repo) |
 | `social-preview.svg` | cartão 1280×640 para o preview social do GitHub | escrito à mão | Apache-2.0 (deste repo) |
 | `arquitetura.mmd` | diagrama das quatro camadas | Mermaid (o GitHub renderiza) | Apache-2.0 (deste repo) |
-| `demo.sh` | roteiro da demo de terminal | escrito à mão | Apache-2.0 (deste repo) |
-| `demo.cast` | gravação da demo, formato asciicast v3 | asciinema 3.2.1 | Apache-2.0 (deste repo) |
+| `demo.sh` | roteiro da demo do CLI | escrito à mão | Apache-2.0 (deste repo) |
+| `demo.cast` | gravação da demo do CLI, formato asciicast v3 | asciinema 3.2.1 | Apache-2.0 (deste repo) |
+| `demo-fone.sh` | roteiro da demo do celular | escrito à mão | Apache-2.0 (deste repo) |
+| `demo-fone.cast` | gravação da demo do celular, num aparelho real | asciinema 3.2.1 | Apache-2.0 (deste repo) |
+| `vitrine-fixture.html` | vitrine de mentira que a demo do celular dirige | escrito à mão | Apache-2.0 (deste repo) |
 
 **Nenhuma fonte tipográfica está embutida.** Os SVGs declaram a pilha do sistema
 (`DejaVu Sans, Inter, system-ui, sans-serif`) e o texto do preview social é
@@ -31,6 +34,8 @@ legível no `git diff`.
 | `social-preview.png` | 1280×640 | ~68 KB | ≤ 1024 KB (teto do GitHub) | `make assets` |
 | `demo.gif` | 921×628, 45 quadros | ~78 KB | ≤ 900 KB | `make demo` |
 | `demo.png` | 921×628 | ~45 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
+| `demo-fone.gif` | 921×628, 70 quadros | ~281 KB | ≤ 900 KB | `make demo-fone` (exige celular) |
+| `demo-fone.png` | 921×628 | ~20 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
 
 Os orçamentos são verificados por `scripts/check-assets.py`, que **quebra o CI**
 se uma peça engordar. O do GIF é bem mais apertado que o formato permite porque
@@ -52,6 +57,29 @@ Isso é regra, não coincidência:
 
 A demo é gravada num diretório temporário que é apagado no fim, sem nome de
 usuário, sem hostname e sem caminho da máquina que gravou.
+
+### A demo do celular
+
+`make demo-fone` é a única peça que precisa de hardware: um Android físico
+ligado por `adb`. A gravação é real — o `feira-fone` lê a árvore de
+acessibilidade do aparelho, toca de verdade e recusa o pagamento de verdade.
+
+**O que é encenado é só a loja.** A demo dirige
+`docs/assets/source/vitrine-fixture.html`, uma vitrine estática com os mesmos
+itens do `template/`, servida na rede local e aberta no navegador do aparelho.
+Gravar contra um aplicativo de entrega real significaria expor a conta de
+alguém — endereço, histórico de pedidos, formas de pagamento — para produzir
+material de divulgação, além de dirigir o app de um terceiro com essa
+finalidade. A fixture mantém a demonstração honesta sobre a ferramenta e uma
+casa real fora dela.
+
+O serial do aparelho é mascarado na gravação: ele é alcançado por uma rede
+privada, e esse endereço é infraestrutura, não algo que um README precise
+publicar.
+
+Para refazer: sirva `docs/assets/source/` em HTTP, abra a vitrine no aparelho e
+rode `make demo-fone`. As pré-condições estão no cabeçalho do `demo-fone.sh`, e
+o roteiro **falha em vez de gravar** se a recusa de pagamento não acontecer.
 
 ## Acessibilidade
 
