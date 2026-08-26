@@ -1,0 +1,16 @@
+# This repository is the TOOL. A household's data lives in its own repository,
+# created by `feira init`, and must never end up here.
+casa/
+minha-feira/
+*/dados/observacoes.csv
+!template/dados/observacoes.csv
+
+# Receipts, in case anyone tests with real ones
+notas/
+*.xml
+*.zip
+
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/

@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""feira-fone — drive a physical Android handset for the last mile of an order.
+
+Requires a real, Play-certified phone connected over USB or wireless debugging.
+An emulator will not work for this job: Brazilian delivery apps check Play
+Integrity, and a virtual device cannot produce a device-integrity verdict. See
+docs/pesquisa/harness-de-login.md.
+
+Standard library only; shells out to `adb`.
+
+The three guardrails, which are the entire reason this file exists rather than
+raw `adb shell input tap`:
+
+  1. Refuses to act when more than one device is attached and none is pinned.
+     A second device silently absorbs every command and returns empty dumps,
+     which looks exactly like a broken script.
+  2. Never taps a coordinate you supply. Elements are resolved from a fresh UI
+     dump at the moment of the tap; a coordinate from an older screen is a tap
+     in the wrong place.
+  3. Refuses to tap anything that looks like a payment button unless the human
+     passes --eu-confirmo on that specific invocation. The gate is code, not a
+     paragraph in a README.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import random
+import re
+import subprocess
+import sys
+import time
+import xml.etree.ElementTree as ET
+
+BOUNDS = re.compile(r"\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]")
+
+# Tapping any of these spends money or sends something to a stranger. Matched
+# case-insensitively against the element's visible text, in Portuguese and
+# English because the apps mix both.
+PERIGO = [
+    "pagar", "finalizar pedido", "finalizar compra", "confirmar pedido",
+    "confirmar pagamento", "fazer pedido", "place order", "pay now",
+    "confirm order", "buy now", "comprar agora", "adicionar cartão",
+    "enviar", "send",
+]
+
+
+def die(msg: str, code: int = 1):
+    print(f"feira-fone: {msg}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def adb(*args: str, serial: str | None = None, timeout: int = 30) -> str:
+    cmd = ["adb"]
+    if serial:
+        cmd += ["-s", serial]
+    cmd += list(args)
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=False)
+    except FileNotFoundError:
+        die("adb not found. Install the Android platform-tools and try again.\n"
+            "     Debian/Ubuntu: sudo apt install adb\n"
+            "     macOS:         brew install android-platform-tools", 2)
+    except subprocess.TimeoutExpired:
+        die(f"adb timed out after {timeout}s running: {' '.join(args)}")
+    if p.returncode != 0:
+        die(f"adb failed: {(p.stderr or p.stdout).strip()}")
+    return p.stdout
+
+
+def devices() -> list[tuple[str, str]]:
+    out = []
+    for line in adb("devices").splitlines()[1:]:
+        parts = line.split()
+        if len(parts) >= 2:
+            out.append((parts[0], parts[1]))
+    return out
+
+
+def pick_device(explicit: str | None) -> str:
+    """Resolve exactly one device, or refuse. Never guesses."""
+    serial = explicit or os.environ.get("ANDROID_SERIAL")
+    attached = devices()
+    ready = [s for s, state in attached if state == "device"]
+
+    if not attached:
+        die("no device attached.\n"
+            "     USB:      plug it in, unlock the screen, and accept the debugging prompt\n"
+            "     Wireless: adb pair <ip>:<port>  then  adb connect <ip>:<port>", 2)
+
+    unauthorised = [s for s, state in attached if state == "unauthorized"]
+    if unauthorised and not ready:
+        die(f"device {unauthorised[0]} is attached but not authorised.\n"
+            "     Unlock the phone and tap 'Allow USB debugging'.", 2)
+
+    if serial:
+        if serial not in ready:
+            die(f"device '{serial}' is not ready. Attached: {', '.join(s for s, _ in attached) or 'none'}")
+        return serial
+
+    if len(ready) > 1:
+        die("more than one device is attached and none is pinned:\n\n"
+            + "\n".join(f"       {s}" for s in ready)
+            + "\n\n     Pin one before doing anything:\n"
+              "       export ANDROID_SERIAL=<serial>      (or pass --device <serial>)\n\n"
+            "     This is refused rather than guessed because the wrong phone\n"
+            "     accepts every command silently and returns empty screens.", 2)
+
+    if not ready:
+        die("a device is attached but not in 'device' state — check the phone's screen", 2)
+    return ready[0]
+
+
+def dump(serial: str) -> list[dict]:
+    """Fresh UI hierarchy as a flat list of nodes."""
+    adb("shell", "uiautomator", "dump", "/sdcard/window_dump.xml", serial=serial, timeout=45)
+    xml = adb("exec-out", "cat", "/sdcard/window_dump.xml", serial=serial, timeout=45)
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as exc:
+        die(f"could not parse the UI dump ({exc}). Is the screen on and unlocked?")
+
+    nodes = []
+    for el in root.iter("node"):
+        m = BOUNDS.fullmatch(el.get("bounds", "") or "")
+        if not m:
+            continue
+        x1, y1, x2, y2 = map(int, m.groups())
+        if x2 <= x1 or y2 <= y1:
+            continue  # zero-area, not really on screen
+        nodes.append({
+            "text": (el.get("text") or "").strip(),
+            "desc": (el.get("content-desc") or "").strip(),
+            "id": el.get("resource-id") or "",
+            "class": el.get("class") or "",
+            "clickable": el.get("clickable") == "true",
+            "enabled": el.get("enabled") == "true",
+            "center": {"x": (x1 + x2) // 2, "y": (y1 + y2) // 2},
+            "area": (x2 - x1) * (y2 - y1),
+        })
+    return nodes
+
+
+def match(nodes: list[dict], needle: str, only_clickable: bool = True) -> list[dict]:
+    low = needle.casefold()
+    hits = [
+        n for n in nodes
+        if (low in n["text"].casefold() or low in n["desc"].casefold())
+        and n["enabled"]
+        and (n["clickable"] or not only_clickable)
+    ]
+    # Smallest first: the tightest element containing the text is the button
+    # itself rather than the card, the list, or the whole screen.
+    return sorted(hits, key=lambda n: n["area"])
+
+
+def is_dangerous(label: str) -> str | None:
+    low = label.casefold()
+    for word in PERIGO:
+        if word in low:
+            return word
+    return None
+
+
+# ---------------------------------------------------------------------------
+
+def cmd_dispositivos(args) -> int:
+    attached = devices()
+    if not attached:
+        print("no device attached.")
+        print()
+        print("  USB:      plug in, unlock, accept the debugging prompt")
+        print("  Wireless: adb pair <ip>:<port>, then adb connect <ip>:<port>")
+        return 1
+    for serial, state in attached:
+        mark = "" if state == "device" else f"   <- {state}"
+        model = ""
+        if state == "device":
+            model = adb("shell", "getprop", "ro.product.model", serial=serial).strip()
+        print(f"  {serial:<28} {model}{mark}")
+    if len(attached) > 1:
+        print()
+        print("  More than one. Pin the one you mean:  export ANDROID_SERIAL=<serial>")
+    return 0
+
+
+def cmd_tela(args) -> int:
+    serial = pick_device(args.device)
+    nodes = dump(serial)
+    if args.json:
+        print(json.dumps(nodes, indent=2, ensure_ascii=False))
+        return 0
+    visible = [n for n in nodes if n["text"] or n["desc"]]
+    print(f"{len(visible)} elements with text ({sum(1 for n in visible if n['clickable'])} clickable)\n")
+    for n in visible:
+        label = n["text"] or f"[{n['desc']}]"
+        flag = "•" if n["clickable"] else " "
+        print(f"  {flag} {label[:64]:<64} ({n['center']['x']},{n['center']['y']})")
+    return 0
+
+
+def cmd_achar(args) -> int:
+    serial = pick_device(args.device)
+    hits = match(dump(serial), args.texto, only_clickable=not args.qualquer)
+    if not hits:
+        print(f"no {'element' if args.qualquer else 'tappable element'} matching {args.texto!r}")
+        return 1
+    for n in hits:
+        label = n["text"] or f"[{n['desc']}]"
+        print(f"  {label[:60]:<60} ({n['center']['x']},{n['center']['y']})  area={n['area']}")
+    return 0
+
+
+def cmd_tocar(args) -> int:
+    serial = pick_device(args.device)
+
+    before = dump(serial)
+    hits = match(before, args.texto)
+    if not hits:
+        print(f"feira-fone: nothing tappable matching {args.texto!r}.", file=sys.stderr)
+        print("            Run `feira-fone tela` to see what is actually on screen.", file=sys.stderr)
+        return 1
+    if len(hits) > 1 and not args.primeiro:
+        print(f"feira-fone: {len(hits)} elements match {args.texto!r}:", file=sys.stderr)
+        for n in hits:
+            print(f"              {(n['text'] or n['desc'])[:60]}", file=sys.stderr)
+        print("            Be more specific, or pass --primeiro to take the smallest.", file=sys.stderr)
+        return 1
+
+    target = hits[0]
+    label = target["text"] or target["desc"]
+
+    word = is_dangerous(label)
+    if word and not args.eu_confirmo:
+        print(f"\nfeira-fone: REFUSED — {label!r} matches the payment word {word!r}.\n", file=sys.stderr)
+        print("  This taps a button that spends money or contacts someone. The human", file=sys.stderr)
+        print("  approves it, in the moment, or it does not happen.\n", file=sys.stderr)
+        print("  Show the person the cart total, the merchant and the card. If they", file=sys.stderr)
+        print("  say yes, re-run this exact command with --eu-confirmo.\n", file=sys.stderr)
+        return 3
+
+    x, y = target["center"]["x"], target["center"]["y"]
+    # Small jitter, and a pause: instant, pixel-identical taps are a robot
+    # signature, and delivery apps score interaction timing.
+    x += random.randint(-3, 3)
+    y += random.randint(-3, 3)
+    time.sleep(random.uniform(0.4, 0.9))
+
+    if args.eu_confirmo and word:
+        print(f"  confirmed by human — tapping {label!r}")
+    adb("shell", "input", "tap", str(x), str(y), serial=serial)
+
+    time.sleep(1.2)
+    after = dump(serial)
+    changed = {n["text"] for n in after} != {n["text"] for n in before}
+    print(f"tapped {label!r} at ({x},{y}) — screen {'changed' if changed else 'did NOT change'}")
+    if not changed:
+        print("  The screen looks identical. The tap may have missed, or the app is still")
+        print("  loading. Check with `feira-fone tela` before tapping again — do not")
+        print("  repeat a tap blindly in a checkout flow.")
+        return 1
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="feira-fone",
+        description="Drive a physical Android phone for the last mile of a grocery order.",
+        epilog="Never pays for anything without --eu-confirmo on that exact command.",
+    )
+    p.add_argument("--device", "-s", default=None, help="device serial (or set ANDROID_SERIAL)")
+    sub = p.add_subparsers(dest="comando", required=True)
+
+    s = sub.add_parser("dispositivos", help="list attached devices")
+    s.set_defaults(func=cmd_dispositivos)
+
+    s = sub.add_parser("tela", help="what is on screen right now")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(func=cmd_tela)
+
+    s = sub.add_parser("achar", help="find an element by its visible text")
+    s.add_argument("texto")
+    s.add_argument("--qualquer", action="store_true", help="include non-tappable elements")
+    s.set_defaults(func=cmd_achar)
+
+    s = sub.add_parser("tocar", help="resolve an element by text and tap it")
+    s.add_argument("texto")
+    s.add_argument("--primeiro", action="store_true", help="if several match, take the smallest")
+    s.add_argument("--eu-confirmo", dest="eu_confirmo", action="store_true",
+                   help="the human has seen the total and approved THIS action")
+    s.set_defaults(func=cmd_tocar)
+
+    return p
+
+
+def main(argv=None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

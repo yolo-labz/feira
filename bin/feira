@@ -1,0 +1,776 @@
+#!/usr/bin/env python3
+"""feira — household grocery price intelligence, in plain files.
+
+Single file on purpose: this tool is installed by a piped-curl bootstrap, so a
+reader must be able to audit the whole thing in one sitting. Standard library
+only, no dependencies, no network access.
+
+The data model is three plain files you can open in any editor:
+
+    itens/<sku>.md         one item: YAML front matter + your own notes
+    dados/observacoes.csv  append-only log of prices you actually observed
+    mercados/<slug>.md     one merchant
+
+Everything else is derived. Nothing here talks to a store, a bank, or a phone;
+those are the agent's job (see skills/) and always behind a human gate.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import datetime as dt
+import json
+import math
+import os
+import re
+import sys
+import unicodedata
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+VERSION = "0.1.0"
+
+# Defaults mirror the doctrine in docs/02-o-metodo.md §5. Override in feira.toml.
+DEFAULTS = {
+    "moeda": "BRL",
+    "delta_minimo_pct": 8.0,   # never switch merchant for less than this
+    "amostras_minimas": 3,     # per merchant, before its average means anything
+    "janela_dias": 90,         # observations older than this stop counting
+}
+
+CSV_FIELDS = [
+    "data", "sku", "mercado", "marca", "embalagem",
+    "quantidade", "preco_total", "fonte", "observacao",
+]
+
+# ---------------------------------------------------------------------------
+# unit normalisation — the part that makes comparison honest
+# ---------------------------------------------------------------------------
+#
+# "Atacarejo: always check price per kg against price per package — shrinkflation
+# is routine."  A 900 ml oil bottle priced against a 1 L bottle is a 11% lie you
+# cannot see without normalising first.  Base units are kg, L and un(it).
+
+_MASS = {"kg": 1.0, "g": 0.001, "mg": 0.000001}
+_VOLUME = {"l": 1.0, "ml": 0.001, "cl": 0.01}
+_COUNT = {"un": 1.0, "u": 1.0, "und": 1.0, "unid": 1.0, "pc": 1.0, "cap": 1.0}
+
+# "6x350ml", "12 x 1 L", "c/16", "com 16"
+_MULTIPACK = re.compile(r"(\d+)\s*[x×]\s*(?=\d)", re.I)
+_COUNTPACK = re.compile(r"\b(?:c/|com\s+|cx\s+|leve\s+)(\d+)\b", re.I)
+_AMOUNT = re.compile(r"(\d+(?:[.,]\d+)?)\s*(kg|g|mg|ml|cl|l|un|und|unid|u|pc)\b", re.I)
+
+
+def _num(raw: str) -> float:
+    """Parse a Brazilian or international decimal. '1.234,56' and '1234.56' both work."""
+    s = str(raw).strip().replace(" ", "")
+    if not s:
+        return 0.0
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".") if s.rindex(",") > s.rindex(".") else s.replace(",", "")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def parse_package(text: str) -> tuple[float, str]:
+    """'fardo 6x350ml' -> (2.1, 'L').  'c/16' -> (16.0, 'un').  '' -> (1.0, 'un').
+
+    Returns the total base-unit content of ONE package, so that
+    price_total / (quantity * content) is a true price per kg / L / unit.
+    """
+    if not text:
+        return 1.0, "un"
+    t = str(text).strip().lower()
+
+    multiplier = 1.0
+    m = _MULTIPACK.search(t)
+    if m:
+        multiplier = float(m.group(1))
+        t = t[m.end():]
+
+    m = _AMOUNT.search(t)
+    if m:
+        value, suffix = _num(m.group(1)), m.group(2).lower()
+        if suffix in _MASS:
+            return value * multiplier * _MASS[suffix], "kg"
+        if suffix in _VOLUME:
+            return value * multiplier * _VOLUME[suffix], "L"
+        return value * multiplier, "un"
+
+    m = _COUNTPACK.search(t)
+    if m:
+        return float(m.group(1)) * multiplier, "un"
+
+    return multiplier, "un"
+
+
+def slugify(text: str) -> str:
+    n = unicodedata.normalize("NFKD", str(text)).encode("ascii", "ignore").decode()
+    n = re.sub(r"[^a-zA-Z0-9]+", "-", n).strip("-").lower()
+    return re.sub(r"-{2,}", "-", n) or "sem-nome"
+
+
+def brl(value: float) -> str:
+    s = f"{value:,.2f}".replace(",", "\x00").replace(".", ",").replace("\x00", ".")
+    return f"R$ {s}"
+
+
+# ---------------------------------------------------------------------------
+# the household repository
+# ---------------------------------------------------------------------------
+
+class Casa:
+    """A household repository: the directory holding itens/, dados/, mercados/."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.itens = root / "itens"
+        self.mercados = root / "mercados"
+        self.dados = root / "dados"
+        self.observacoes = self.dados / "observacoes.csv"
+        self.diario = root / "DIARIO.md"
+        self.config = dict(DEFAULTS)
+        self._load_config()
+
+    @classmethod
+    def find(cls, start: Path | None = None) -> "Casa":
+        cur = (start or Path(os.environ.get("FEIRA_CASA", Path.cwd()))).resolve()
+        for candidate in [cur, *cur.parents]:
+            if (candidate / "feira.toml").exists():
+                return cls(candidate)
+        die(
+            "no household repository here.\n"
+            "  Run `feira init <directory>` to create one, or set FEIRA_CASA to point at yours."
+        )
+
+    def _load_config(self) -> None:
+        path = self.root / "feira.toml"
+        if not path.exists():
+            return
+        try:
+            import tomllib
+        except ModuleNotFoundError:  # Python < 3.11 — defaults still work
+            return
+        with path.open("rb") as fh:
+            data = tomllib.load(fh)
+        self.config.update(data.get("comparacao", {}))
+        self.casa_info = data.get("casa", {})
+
+    # -- observations -------------------------------------------------------
+
+    def read_observations(self) -> list[dict]:
+        if not self.observacoes.exists():
+            return []
+        with self.observacoes.open(encoding="utf-8", newline="") as fh:
+            rows = list(csv.DictReader(fh))
+        out = []
+        for i, row in enumerate(rows, start=2):
+            row["_linha"] = i
+            price = _num(row.get("preco_total", ""))
+            qty = _num(row.get("quantidade", "")) or 1.0
+            content, base = parse_package(row.get("embalagem", ""))
+            total_content = qty * content
+            row["_preco"] = price
+            row["_base"] = base
+            row["_conteudo"] = total_content
+            row["_unitario"] = price / total_content if total_content else math.nan
+            out.append(row)
+        return out
+
+    def append_observation(self, row: dict) -> None:
+        self.dados.mkdir(parents=True, exist_ok=True)
+        new = not self.observacoes.exists()
+        with self.observacoes.open("a", encoding="utf-8", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
+            if new:
+                writer.writeheader()
+            writer.writerow({k: row.get(k, "") for k in CSV_FIELDS})
+
+    # -- items --------------------------------------------------------------
+
+    def item_path(self, sku: str) -> Path:
+        return self.itens / f"{slugify(sku)}.md"
+
+    def read_item(self, sku: str) -> dict:
+        path = self.item_path(sku)
+        if not path.exists():
+            return {}
+        return read_front_matter(path)
+
+    def all_skus(self) -> list[str]:
+        seen = {p.stem for p in self.itens.glob("*.md") if not p.stem.startswith("_")}
+        seen |= {r["sku"] for r in self.read_observations() if r.get("sku")}
+        return sorted(seen)
+
+
+def read_front_matter(path: Path) -> dict:
+    """Minimal YAML front-matter reader: flat scalars and [a, b] lists only.
+
+    ponytail: deliberately not a YAML parser. The item schema is flat by design
+    (docs/referencia/esquema.md). If you need nesting, you need a different file.
+    """
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---"):
+        return {}
+    end = text.find("\n---", 3)
+    if end == -1:
+        return {}
+    out: dict = {}
+    for line in text[3:end].splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or ":" not in line:
+            continue
+        key, _, value = line.partition(":")
+        value = value.strip().strip('"').strip("'")
+        if value.startswith("[") and value.endswith("]"):
+            out[key.strip()] = [v.strip() for v in value[1:-1].split(",") if v.strip()]
+        else:
+            out[key.strip()] = value
+    return out
+
+
+def die(message: str, code: int = 1) -> None:
+    print(f"feira: {message}", file=sys.stderr)
+    raise SystemExit(code)
+
+
+def today() -> str:
+    return dt.date.today().isoformat()
+
+
+# ---------------------------------------------------------------------------
+# comparison — the arbitrage table and the migration rule
+# ---------------------------------------------------------------------------
+
+def summarise(observations: list[dict], janela_dias: int) -> dict[str, dict]:
+    """Group observations of one SKU by merchant, in price per base unit."""
+    cutoff = dt.date.today() - dt.timedelta(days=int(janela_dias))
+    by_merchant: dict[str, dict] = {}
+    for row in observations:
+        try:
+            when = dt.date.fromisoformat(row["data"][:10])
+        except (ValueError, KeyError):
+            continue
+        if when < cutoff or not math.isfinite(row["_unitario"]):
+            continue
+        entry = by_merchant.setdefault(
+            row["mercado"] or "?",
+            {"precos": [], "datas": [], "base": row["_base"], "marcas": set()},
+        )
+        entry["precos"].append(row["_unitario"])
+        entry["datas"].append(when)
+        if row.get("marca"):
+            entry["marcas"].add(row["marca"])
+    for entry in by_merchant.values():
+        precos = sorted(entry["precos"])
+        n = len(precos)
+        entry["n"] = n
+        entry["mediana"] = precos[n // 2] if n % 2 else (precos[n // 2 - 1] + precos[n // 2]) / 2
+        entry["minimo"] = precos[0]
+        entry["maximo"] = precos[-1]
+        entry["ultima"] = max(entry["datas"]).isoformat()
+    return by_merchant
+
+
+def verdict(by_merchant: dict[str, dict], atual: str | None, cfg: dict) -> dict:
+    """Apply the migration rule. Returns a decision, never a bare 'cheapest'.
+
+    Switching merchant costs a delivery fee, a minimum-order threshold and an
+    afternoon. The rule exists so a single lucky snapshot cannot move the whole
+    basket: a merchant must be BOTH meaningfully cheaper AND repeatedly observed.
+    """
+    delta_min = float(cfg["delta_minimo_pct"])
+    n_min = int(cfg["amostras_minimas"])
+
+    qualified = {m: e for m, e in by_merchant.items() if e["n"] >= n_min}
+    if not qualified:
+        needed = n_min - max((e["n"] for e in by_merchant.values()), default=0)
+        return {
+            "acao": "coletar",
+            "razao": f"nenhum mercado atingiu {n_min} amostras — faltam ao menos {max(needed, 1)}",
+        }
+
+    winner = min(qualified, key=lambda m: qualified[m]["mediana"])
+    if atual is None or atual not in qualified:
+        return {
+            "acao": "adotar",
+            "mercado": winner,
+            "preco": qualified[winner]["mediana"],
+            "razao": f"sem mercado de referência com {n_min}+ amostras; adotar o mais barato qualificado",
+        }
+
+    base = qualified[atual]["mediana"]
+    best = qualified[winner]["mediana"]
+    delta = (base - best) / base * 100 if base else 0.0
+
+    if winner == atual:
+        return {"acao": "manter", "mercado": atual, "preco": base,
+                "razao": "o mercado atual já é o mais barato qualificado"}
+    if delta < delta_min:
+        return {"acao": "manter", "mercado": atual, "preco": base,
+                "razao": f"{winner} está apenas {delta:.1f}% abaixo (limite {delta_min:.0f}%) — não paga a troca"}
+    return {"acao": "migrar", "mercado": winner, "de": atual, "preco": best,
+            "delta_pct": delta,
+            "razao": f"{winner} está {delta:.1f}% abaixo de {atual} com {qualified[winner]['n']} amostras"}
+
+
+# ---------------------------------------------------------------------------
+# NFC-e — Brazilian electronic consumer receipts
+# ---------------------------------------------------------------------------
+
+NFE_NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
+
+
+def parse_nfce(path: Path) -> dict:
+    """Parse one NFC-e XML into a receipt dict. Works on the authorised XML
+    downloaded from a SEFAZ portal (model 65). Never fetches anything."""
+    root = ET.parse(path).getroot()
+    inf = root.find(".//n:infNFe", NFE_NS)
+    if inf is None:
+        raise ValueError(f"{path.name}: no <infNFe> element — not an NF-e/NFC-e XML")
+
+    def txt(node, xpath: str) -> str:
+        return (node.findtext(xpath, default="", namespaces=NFE_NS) or "").strip() if node is not None else ""
+
+    emit = inf.find("n:emit", NFE_NS)
+    ide = inf.find("n:ide", NFE_NS)
+    total = inf.find("n:total/n:ICMSTot", NFE_NS)
+
+    items = []
+    for det in inf.findall("n:det", NFE_NS):
+        prod = det.find("n:prod", NFE_NS)
+        items.append({
+            "n": det.attrib.get("nItem"),
+            "codigo": txt(prod, "n:cProd"),
+            "ean": txt(prod, "n:cEAN"),
+            "descricao": txt(prod, "n:xProd"),
+            "quantidade": _num(txt(prod, "n:qCom")),
+            "unidade": txt(prod, "n:uCom"),
+            "preco_unitario": _num(txt(prod, "n:vUnCom")),
+            "total": _num(txt(prod, "n:vProd")),
+            "desconto": _num(txt(prod, "n:vDesc")),
+        })
+
+    return {
+        "arquivo": path.name,
+        "chave": inf.attrib.get("Id", "").replace("NFe", ""),
+        "emitente": txt(emit, "n:xFant") or txt(emit, "n:xNome"),
+        "emitente_cnpj": txt(emit, "n:CNPJ"),
+        "municipio": txt(emit, "n:enderEmit/n:xMun"),
+        "data": txt(ide, "n:dhEmi")[:10],
+        "total": _num(txt(total, "n:vNF")),
+        "desconto": _num(txt(total, "n:vDesc")),
+        "itens": items,
+    }
+
+
+# ---------------------------------------------------------------------------
+# commands
+# ---------------------------------------------------------------------------
+
+def cmd_init(args) -> int:
+    dest = Path(args.diretorio).resolve()
+    template = Path(__file__).resolve().parent.parent / "template"
+    if not template.is_dir():
+        die(f"template directory not found next to the executable ({template})")
+    if (dest / "feira.toml").exists() and not args.forcar:
+        die(f"{dest} already holds a household repository. Use --forcar to overwrite the config.")
+
+    copied, skipped = 0, 0
+    for src in sorted(template.rglob("*")):
+        rel = src.relative_to(template)
+        out = dest / rel
+        if src.is_dir():
+            out.mkdir(parents=True, exist_ok=True)
+            continue
+        out.parent.mkdir(parents=True, exist_ok=True)
+        if out.exists() and not args.forcar:
+            skipped += 1
+            continue
+        out.write_bytes(src.read_bytes())
+        copied += 1
+
+    _rebase_seed_dates(dest / "dados" / "observacoes.csv")
+
+    print(f"household repository ready at {dest}")
+    print(f"  {copied} files written, {skipped} left untouched")
+    print()
+    print("Next:")
+    print(f"  1. cd {dest}")
+    print("  2. edit AGENTS.md    — your household's rules, in your own words")
+    print("  3. edit feira.toml   — thresholds and merchants")
+    print("  4. feira record --help")
+    return 0
+
+
+def _rebase_seed_dates(csv_path: Path) -> None:
+    """Slide the example observations forward so the newest one is ~a week ago.
+
+    Without this the shipped template ages out of `janela_dias` and a first-time
+    user's very first `feira advise` prints nothing — the worst possible first
+    impression for a tool whose whole pitch is 'it tells you what to change'.
+    Only touches rows the template marked as examples.
+    """
+    if not csv_path.exists():
+        return
+    with csv_path.open(encoding="utf-8", newline="") as fh:
+        rows = list(csv.DictReader(fh))
+    dates = []
+    for row in rows:
+        if not row.get("observacao", "").startswith("exemplo"):
+            return  # user data present — never rewrite it
+        try:
+            dates.append(dt.date.fromisoformat(row["data"]))
+        except (ValueError, KeyError):
+            return
+    if not dates:
+        return
+    shift = (dt.date.today() - dt.timedelta(days=7)) - max(dates)
+    for row, when in zip(rows, dates):
+        row["data"] = (when + shift).isoformat()
+    with csv_path.open("w", encoding="utf-8", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        writer.writerows({k: r.get(k, "") for k in CSV_FIELDS} for r in rows)
+
+
+def cmd_record(args) -> int:
+    casa = Casa.find()
+    sku = slugify(args.sku)
+    row = {
+        "data": args.data or today(),
+        "sku": sku,
+        "mercado": slugify(args.mercado),
+        "marca": args.marca or "",
+        "embalagem": args.embalagem or "",
+        "quantidade": args.quantidade,
+        "preco_total": f"{args.preco:.2f}",
+        "fonte": args.fonte,
+        "observacao": args.observacao or "",
+    }
+    casa.append_observation(row)
+
+    content, base = parse_package(row["embalagem"])
+    total_content = args.quantidade * content
+    unit = args.preco / total_content if total_content else math.nan
+    print(f"recorded  {sku} @ {row['mercado']}  {brl(args.preco)}  =  {brl(unit)}/{base}")
+
+    if not casa.item_path(sku).exists():
+        print(f"note: no item file yet — create {casa.item_path(sku).relative_to(casa.root)} to add your notes")
+    return 0
+
+
+def cmd_compare(args) -> int:
+    casa = Casa.find()
+    sku = slugify(args.sku)
+    rows = [r for r in casa.read_observations() if r["sku"] == sku]
+    if not rows:
+        die(f"no observations for '{sku}'. Record one with: feira record {sku} <merchant> <price>")
+
+    by_merchant = summarise(rows, casa.config["janela_dias"])
+    if not by_merchant:
+        die(f"all observations for '{sku}' are older than {casa.config['janela_dias']} days")
+
+    item = casa.read_item(sku)
+    atual = item.get("mercado_atual") or None
+    base = next(iter(by_merchant.values()))["base"]
+
+    if args.json:
+        print(json.dumps({
+            "sku": sku, "base": base,
+            "mercados": {m: {k: v for k, v in e.items() if not isinstance(v, (set, list))}
+                         for m, e in by_merchant.items()},
+            "veredito": verdict(by_merchant, atual, casa.config),
+        }, indent=2, ensure_ascii=False, default=str))
+        return 0
+
+    title = item.get("item") or sku
+    print(f"\n{title}   ({sku})")
+    print(f"preço por {base}, últimos {casa.config['janela_dias']} dias\n")
+    print(f"  {'mercado':<28} {'mediana':>12} {'mín':>10} {'máx':>10} {'n':>4}  última")
+    print(f"  {'-' * 28} {'-' * 12} {'-' * 10} {'-' * 10} {'-' * 4}  {'-' * 10}")
+    cheapest = min(e["mediana"] for e in by_merchant.values())
+    for merchant, e in sorted(by_merchant.items(), key=lambda kv: kv[1]["mediana"]):
+        mark = " *" if e["mediana"] == cheapest else ("  <- atual" if merchant == atual else "")
+        print(f"  {merchant:<28} {brl(e['mediana']):>12} {brl(e['minimo']):>10} "
+              f"{brl(e['maximo']):>10} {e['n']:>4}  {e['ultima']}{mark}")
+
+    v = verdict(by_merchant, atual, casa.config)
+    print(f"\n  {v['acao'].upper()}: {v['razao']}")
+    if v["acao"] == "migrar":
+        print(f"  → set  mercado_atual: {v['mercado']}  in {casa.item_path(sku).name}")
+    print()
+    return 0
+
+
+def cmd_advise(args) -> int:
+    casa = Casa.find()
+    observations = casa.read_observations()
+    if not observations:
+        die("no observations yet — nothing to advise on")
+
+    by_sku: dict[str, list] = {}
+    for row in observations:
+        by_sku.setdefault(row["sku"], []).append(row)
+
+    actions = {"migrar": [], "adotar": [], "manter": [], "coletar": []}
+    for sku, rows in sorted(by_sku.items()):
+        by_merchant = summarise(rows, casa.config["janela_dias"])
+        if not by_merchant:
+            continue
+        atual = casa.read_item(sku).get("mercado_atual") or None
+        v = verdict(by_merchant, atual, casa.config)
+        v["sku"] = sku
+        actions[v["acao"]].append(v)
+
+    if args.json:
+        print(json.dumps(actions, indent=2, ensure_ascii=False, default=str))
+        return 0
+
+    print(f"\n{len(by_sku)} itens, regra: migrar só com "
+          f"≥{casa.config['delta_minimo_pct']:.0f}% de diferença e "
+          f"≥{casa.config['amostras_minimas']} amostras\n")
+
+    if actions["migrar"]:
+        print("  MIGRAR")
+        for v in sorted(actions["migrar"], key=lambda x: -x["delta_pct"]):
+            print(f"    {v['sku']:<38} {v['de']} → {v['mercado']}   -{v['delta_pct']:.1f}%")
+    if actions["adotar"]:
+        print("\n  ADOTAR (sem mercado de referência definido)")
+        for v in actions["adotar"]:
+            print(f"    {v['sku']:<38} → {v['mercado']}")
+    if actions["coletar"]:
+        print(f"\n  COLETAR MAIS PREÇOS ({len(actions['coletar'])} itens sem amostras suficientes)")
+        for v in actions["coletar"][:12]:
+            print(f"    {v['sku']:<38} {v['razao']}")
+        if len(actions["coletar"]) > 12:
+            print(f"    … e mais {len(actions['coletar']) - 12}")
+    if actions["manter"]:
+        print(f"\n  MANTER: {len(actions['manter'])} itens já estão no mercado certo")
+    print()
+    return 0
+
+
+def cmd_nfce(args) -> int:
+    paths: list[Path] = []
+    for raw in args.arquivos:
+        p = Path(raw)
+        paths.extend(sorted(p.rglob("*.xml")) if p.is_dir() else [p])
+    if not paths:
+        die("no XML files found")
+
+    receipts, failures = [], []
+    for path in paths:
+        try:
+            receipts.append(parse_nfce(path))
+        except (ET.ParseError, ValueError) as exc:
+            failures.append(f"{path.name}: {exc}")
+
+    if args.json:
+        print(json.dumps(receipts, indent=2, ensure_ascii=False))
+    else:
+        for r in receipts:
+            print(f"\n{r['data']}  {r['emitente']}  —  {brl(r['total'])}  ({len(r['itens'])} itens)")
+            for item in r["itens"]:
+                print(f"    {item['descricao'][:48]:<48} {item['quantidade']:>7.3f} {item['unidade']:<4} "
+                      f"{brl(item['preco_unitario']):>10}")
+        print()
+
+    if args.importar:
+        casa = Casa.find()
+        n = 0
+        for r in receipts:
+            for item in r["itens"]:
+                casa.append_observation({
+                    "data": r["data"],
+                    "sku": slugify(item["descricao"]),
+                    "mercado": slugify(r["emitente"]),
+                    "marca": "",
+                    "embalagem": item["descricao"],
+                    "quantidade": item["quantidade"] or 1,
+                    "preco_total": f"{item['total']:.2f}",
+                    "fonte": "nfce",
+                    "observacao": r["chave"][:12],
+                })
+                n += 1
+        print(f"imported {n} observations into {casa.observacoes.relative_to(casa.root)}")
+        print("note: SKUs came from the receipt description and will need merging —")
+        print("      see docs/how-to/casar-skus.md")
+
+    for f in failures:
+        print(f"skipped {f}", file=sys.stderr)
+    return 1 if failures and not receipts else 0
+
+
+def cmd_check(args) -> int:
+    casa = Casa.find()
+    problems: list[str] = []
+
+    observations = casa.read_observations()
+    known_skus = {p.stem for p in casa.itens.glob("*.md")}
+    for row in observations:
+        where = f"observacoes.csv:{row['_linha']}"
+        if not row.get("data") or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row["data"][:10]):
+            problems.append(f"{where}: bad date {row.get('data')!r} (want YYYY-MM-DD)")
+        if row["_preco"] <= 0:
+            problems.append(f"{where}: price is {row.get('preco_total')!r}")
+        if not math.isfinite(row["_unitario"]):
+            problems.append(f"{where}: cannot derive a unit price from embalagem={row.get('embalagem')!r}")
+        if row["sku"] and known_skus and row["sku"] not in known_skus:
+            problems.append(f"{where}: sku '{row['sku']}' has no file in itens/")
+
+    for path in sorted(casa.itens.glob("*.md")):
+        fm = read_front_matter(path)
+        if not fm:
+            problems.append(f"itens/{path.name}: no YAML front matter")
+            continue
+        for field in ("item", "unidade_base"):
+            if field not in fm:
+                problems.append(f"itens/{path.name}: missing '{field}'")
+
+    print(f"{len(observations)} observations, {len(known_skus)} items, "
+          f"{len(list(casa.mercados.glob('*.md')))} merchants")
+    if problems:
+        print(f"\n{len(problems)} problems:\n")
+        for p in problems[:40]:
+            print(f"  {p}")
+        if len(problems) > 40:
+            print(f"  … and {len(problems) - 40} more")
+        return 1
+    print("no problems found")
+    return 0
+
+
+def cmd_selftest(args) -> int:
+    """The one runnable check. Everything downstream depends on these numbers."""
+    failures: list[str] = []
+
+    def eq(label: str, got, want, tol: float = 1e-9) -> None:
+        ok = abs(got - want) < tol if isinstance(want, float) else got == want
+        if not ok:
+            failures.append(f"{label}: got {got!r}, want {want!r}")
+
+    # Package normalisation is where a wrong answer silently corrupts every
+    # comparison downstream, so it carries the most cases.
+    eq("1kg", parse_package("1kg"), (1.0, "kg"))
+    eq("pct 500g", parse_package("pct 500g"), (0.5, "kg"))
+    eq("900ml", parse_package("Óleo Soja 900ml"), (0.9, "L"))
+    eq("1,25L", parse_package("Iogurte 1,25L"), (1.25, "L"))
+    eq("fardo 6x350ml", parse_package("fardo 6x350ml"), (2.1, "L"))
+    eq("cx 12x1L", parse_package("cx 12x1L"), (12.0, "L"))
+    eq("c/16", parse_package("Papel Higiênico 30m c/16"), (16.0, "un"))
+    eq("bare", parse_package(""), (1.0, "un"))
+    eq("unknown", parse_package("bandeja"), (1.0, "un"))
+
+    eq("num br", _num("1.234,56"), 1234.56)
+    eq("num intl", _num("1234.56"), 1234.56)
+    eq("num comma", _num("6,63"), 6.63)
+    eq("slug", slugify("Feijão Carioca Urbano 1kg"), "feijao-carioca-urbano-1kg")
+
+    # The migration rule: a cheaper merchant must clear BOTH gates.
+    cfg = {"delta_minimo_pct": 8.0, "amostras_minimas": 3, "janela_dias": 90}
+    hoje = dt.date.today()
+    def merchant(n: int, price: float) -> dict:
+        return {"n": n, "mediana": price, "minimo": price, "maximo": price,
+                "ultima": hoje.isoformat(), "base": "kg"}
+
+    v = verdict({"a": merchant(5, 10.0), "b": merchant(5, 9.9)}, "a", cfg)
+    eq("1% cheaper -> manter", v["acao"], "manter")
+    v = verdict({"a": merchant(5, 10.0), "b": merchant(5, 8.0)}, "a", cfg)
+    eq("20% cheaper -> migrar", v["acao"], "migrar")
+    v = verdict({"a": merchant(5, 10.0), "b": merchant(1, 5.0)}, "a", cfg)
+    eq("half price, 1 sample -> manter", v["acao"], "manter")
+    v = verdict({"a": merchant(1, 10.0)}, "a", cfg)
+    eq("nothing qualified -> coletar", v["acao"], "coletar")
+    v = verdict({"a": merchant(5, 10.0), "b": merchant(5, 12.0)}, "a", cfg)
+    eq("current is cheapest -> manter", v["acao"], "manter")
+
+    # Window: an old observation must not vote.
+    stale = [{"data": (hoje - dt.timedelta(days=200)).isoformat(), "sku": "x", "mercado": "a",
+              "marca": "", "_unitario": 1.0, "_base": "kg"}]
+    eq("stale dropped", len(summarise(stale, 90)), 0)
+
+    # A shrinkflated package must lose even though its sticker price is lower.
+    a_content, _ = parse_package("1L")
+    b_content, _ = parse_package("900ml")
+    eq("shrinkflation caught", (7.90 / a_content) < (7.49 / b_content), True)
+
+    if failures:
+        print(f"FAIL — {len(failures)} of the checks did not hold:\n")
+        for f in failures:
+            print(f"  {f}")
+        return 1
+    print("ok — package normalisation, number parsing and the migration rule all hold")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+
+def build_parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(
+        prog="feira",
+        description="Household grocery price intelligence, stored in plain files.",
+        epilog="Docs: https://github.com/phsb5321/feira  —  `feira <command> --help` for details.",
+    )
+    p.add_argument("--version", action="version", version=f"feira {VERSION}")
+    sub = p.add_subparsers(dest="comando", required=True)
+
+    s = sub.add_parser("init", help="create a household repository")
+    s.add_argument("diretorio", nargs="?", default=".", help="where to create it (default: here)")
+    s.add_argument("--forcar", action="store_true", help="overwrite existing files")
+    s.set_defaults(func=cmd_init)
+
+    s = sub.add_parser("record", help="record one observed price")
+    s.add_argument("sku", help="item identifier, e.g. arroz-tio-joao-1kg")
+    s.add_argument("mercado", help="merchant, e.g. atacadao-delivery")
+    s.add_argument("preco", type=float, help="total price paid or shown, e.g. 4.84")
+    s.add_argument("-q", "--quantidade", type=float, default=1.0, help="how many packages (default 1)")
+    s.add_argument("-e", "--embalagem", default="", help="package, e.g. '1kg', '6x350ml', 'c/16'")
+    s.add_argument("-m", "--marca", default="", help="brand")
+    s.add_argument("-d", "--data", default="", help="YYYY-MM-DD (default: today)")
+    s.add_argument("--fonte", default="manual",
+                   choices=["manual", "nfce", "app", "site", "loja"], help="where the price came from")
+    s.add_argument("-o", "--observacao", default="", help="free note, e.g. 'promoção'")
+    s.set_defaults(func=cmd_record)
+
+    s = sub.add_parser("compare", help="compare merchants for one item")
+    s.add_argument("sku")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(func=cmd_compare)
+
+    s = sub.add_parser("advise", help="what to change across the whole basket")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(func=cmd_advise)
+
+    s = sub.add_parser("nfce", help="read Brazilian NFC-e receipt XML")
+    s.add_argument("arquivos", nargs="+", help="XML files or directories")
+    s.add_argument("--importar", action="store_true", help="append the items as observations")
+    s.add_argument("--json", action="store_true")
+    s.set_defaults(func=cmd_nfce)
+
+    s = sub.add_parser("check", help="validate the household repository")
+    s.set_defaults(func=cmd_check)
+
+    s = sub.add_parser("selftest", help="verify this program's own arithmetic")
+    s.set_defaults(func=cmd_selftest)
+
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        return args.func(args)
+    except BrokenPipeError:
+        return 0
+    except KeyboardInterrupt:
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

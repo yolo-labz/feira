@@ -1,0 +1,17 @@
+data,sku,mercado,marca,embalagem,quantidade,preco_total,fonte,observacao
+2026-06-14,arroz-tio-joao-1kg,mercado-do-bairro,Tio João,1kg,1,6.99,manual,exemplo — apague quando tiver dados seus
+2026-06-21,arroz-tio-joao-1kg,mercado-do-bairro,Tio João,1kg,1,7.20,manual,exemplo
+2026-07-05,arroz-tio-joao-1kg,mercado-do-bairro,Tio João,1kg,1,6.89,manual,exemplo
+2026-06-18,arroz-tio-joao-1kg,atacarejo-online,Tio João,5kg,1,27.45,site,exemplo — pacote de 5kg
+2026-07-02,arroz-tio-joao-1kg,atacarejo-online,Tio João,5kg,1,28.95,site,exemplo
+2026-07-19,arroz-tio-joao-1kg,atacarejo-online,Tio João,5kg,1,27.45,site,exemplo
+2026-06-28,arroz-tio-joao-1kg,app-de-entrega,Tio João,1kg,1,8.49,app,exemplo
+2026-07-12,arroz-tio-joao-1kg,app-de-entrega,Tio João,1kg,1,8.99,app,exemplo
+2026-06-14,oleo-de-soja,mercado-do-bairro,Liza,900ml,1,7.49,manual,exemplo — repare no tamanho da embalagem
+2026-06-28,oleo-de-soja,mercado-do-bairro,Liza,900ml,1,7.29,manual,exemplo
+2026-07-12,oleo-de-soja,mercado-do-bairro,Liza,900ml,1,7.49,manual,exemplo
+2026-06-18,oleo-de-soja,atacarejo-online,Soya,1L,1,7.90,site,exemplo — preço de etiqueta MAIOR
+2026-07-02,oleo-de-soja,atacarejo-online,Soya,1L,1,7.90,site,exemplo
+2026-07-19,oleo-de-soja,atacarejo-online,Soya,1L,1,8.10,site,exemplo
+2026-07-05,papel-higienico-30m,mercado-do-bairro,Neve,30m c/12,1,32.90,manual,exemplo — só 2 amostras de propósito
+2026-07-19,papel-higienico-30m,atacarejo-online,Neve,30m c/16,1,39.90,site,exemplo

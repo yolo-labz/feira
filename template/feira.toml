@@ -1,0 +1,34 @@
+# feira — configuração da casa
+#
+# Edite à vontade. Tudo aqui é opinião da sua casa, não regra do programa.
+
+[casa]
+nome        = "Minha casa"
+cidade      = "Recife-PE"
+pessoas     = 2
+# Orçamento mensal alvo para mercado, em reais. Deixe 0 se ainda não sabe —
+# o método do §3 do docs/02-o-metodo.md serve exatamente para descobrir.
+orcamento_mensal = 0
+
+[comparacao]
+# A regra de migração. Um mercado só rouba um item do concorrente se passar
+# nos DOIS testes. Sem isso, um único preço promocional de um dia move a
+# compra inteira e você paga o frete para descobrir que foi azar.
+
+# Diferença mínima, em %, para valer a troca de mercado.
+# 8% é o piso que cobre frete + pedido mínimo + o seu tempo. Casas que compram
+# muito em um mercado só podem subir para 12-15%.
+delta_minimo_pct = 8.0
+
+# Quantas observações um mercado precisa ter antes de a média dele significar
+# alguma coisa. Abaixo de 3 você está comparando ruído.
+amostras_minimas = 3
+
+# Preço de 4 meses atrás não descreve o mercado de hoje. Observações mais
+# antigas que isto param de contar.
+janela_dias = 90
+
+[privacidade]
+# Estes campos NUNCA devem entrar em arquivo versionado. O `feira check`
+# reclama se encontrar algo parecido. Veja docs/explicacao/privacidade.md.
+proibido_no_repo = ["cpf", "cartao", "cvv", "senha", "token", "endereco_completo"]

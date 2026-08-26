@@ -1,0 +1,19 @@
+# Notas fiscais — NUNCA versione.
+#
+# Uma NFC-e contém o seu CPF e a lista completa do que a sua casa consome,
+# incluindo remédio, bebida e itens que revelam condição de saúde. É um
+# documento mais íntimo do que parece.
+#
+# Os PREÇOS extraídos delas vão para dados/observacoes.csv, que é seguro
+# versionar — data, produto, mercado e valor, sem nada que identifique você.
+#
+# Não apague estas linhas "para organizar melhor".
+notas/
+*.xml
+*.pdf
+*.zip
+
+# Rascunhos e material que costuma carregar dado pessoal
+*-rascunho.md
+*.local.md
+.env

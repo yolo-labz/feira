@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>feira</title>
+<style>
+  /* One radius scale, one border scale, no shadows. The popup is a data
+     surface: density and legibility beat decoration at 380px wide. */
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f6f4;
+    --line: #dcdcd6;
+    --text: #1c1c1a;
+    --muted: #6a6a63;
+    --accent: #1a5c3a;
+    --warn: #8a4b1f;
+    --radius: 4px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c; --surface: #262624; --line: #3a3a36;
+      --text: #e8e8e3; --muted: #9a9a92; --accent: #7fc9a0; --warn: #d9a066;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    width: 380px; margin: 0; padding: 12px;
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  h1 { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+  h2 { font-size: 12px; font-weight: 600; margin: 14px 0 6px; color: var(--muted); }
+  p  { margin: 0 0 10px; color: var(--muted); font-size: 12px; }
+  .campos { display: grid; grid-template-columns: 1fr 108px; gap: 6px; margin-bottom: 10px; }
+  label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  input {
+    width: 100%; padding: 5px 7px; font: inherit; font-size: 12px;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: var(--radius);
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  #lista {
+    max-height: 260px; overflow-y: auto;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .item {
+    display: grid; grid-template-columns: auto 1fr auto;
+    gap: 8px; align-items: start;
+    padding: 6px 8px; border-bottom: 1px solid var(--line);
+  }
+  .item:last-child { border-bottom: 0; }
+  .item input[type=checkbox] { width: auto; margin-top: 2px; }
+  .nome { font-size: 12px; word-break: break-word; }
+  .meta { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .preco { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  .vazio { padding: 16px 10px; color: var(--muted); font-size: 12px; }
+  .acoes { display: flex; gap: 6px; margin-top: 10px; }
+  button {
+    flex: 1; padding: 7px 8px; font: inherit; font-size: 12px; font-weight: 500;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.principal { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  button:disabled { opacity: .45; cursor: default; border-color: var(--line); }
+  #aviso { margin-top: 10px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+  #status { min-height: 15px; margin-top: 6px; font-size: 11px; color: var(--accent); }
+  .revisar { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<h1>Capturar preços desta página</h1>
+<p id="resumo">Lendo a página…</p>
+
+<div class="campos">
+  <div>
+    <label for="mercado">Mercado</label>
+    <input id="mercado" type="text" autocomplete="off">
+  </div>
+  <div>
+    <label for="data">Data</label>
+    <input id="data" type="date">
+  </div>
+</div>
+
+<h2>Itens encontrados</h2>
+<div id="lista"><div class="vazio">Lendo…</div></div>
+
+<div class="acoes">
+  <button id="todos" type="button">Marcar todos</button>
+  <button id="copiar" class="principal" type="button" disabled>Copiar CSV</button>
+</div>
+<div id="status" role="status" aria-live="polite"></div>
+
+<p id="aviso">
+  Nada sai do seu computador. A extensão lê só esta aba, só quando você clica, e
+  devolve o texto para a sua área de transferência — não envia para nenhum
+  servidor. Confira a embalagem antes de colar: é ela que decide a comparação.
+</p>
+
+<script src="popup.js"></script>
+</body>
+</html>
