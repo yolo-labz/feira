@@ -1,0 +1,72 @@
+---
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: tests + lint
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      # The whole project is stdlib Python + one POSIX installer + three small
+      # browser-extension files, so the runner needs nothing but what it ships.
+      - name: shellcheck
+        run: shellcheck -s sh install.sh tests/run.sh
+
+      - name: Python syntax
+        run: |
+          for f in bin/feira bin/feira-fone bin/feira-mcp; do
+            python3 -c "import ast,sys; ast.parse(open(sys.argv[1]).read())" "$f"
+          done
+
+      - name: JavaScript syntax
+        run: |
+          for f in extensao/coletor.js extensao/popup.js; do
+            node --check "$f"
+          done
+          python3 -c "import json;json.load(open('extensao/manifest.json'))"
+
+      # The real gate. Five suites: unit arithmetic and the migration rule, the
+      # feira-fone payment gate, the MCP protocol AND its no-payment-capability
+      # invariant, the extension collector, and a freshly created household repo.
+      - name: Test suite
+        run: sh tests/run.sh
+
+      - name: Installer dry run
+        run: sh install.sh --dry-run --prefix /tmp/feira-ci --casa /tmp/casa-ci
+
+      - name: Installer end to end
+        run: |
+          FEIRA_BINDIR=/tmp/ci-bin FEIRA_SKILLDIR=/tmp/ci-skills/x \
+            sh install.sh --prefix /tmp/feira-e2e --casa /tmp/casa-e2e
+          cd /tmp/casa-e2e
+          /tmp/ci-bin/feira check
+          /tmp/ci-bin/feira advise

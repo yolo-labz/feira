@@ -1,0 +1,16 @@
+# Path-based ownership. Informational — this is a solo-maintained project.
+
+* @phsb5321
+
+# Release-engineering surface
+/.github/     @phsb5321
+/install.sh   @phsb5321
+
+# Safety-critical. A change here can cost someone money:
+#   feira-fone — the payment-button refusal
+#   feira-mcp  — must never gain an ordering or payment tool
+#   tests/     — the checks that keep both of the above honest
+/bin/feira-fone @phsb5321
+/bin/feira-mcp  @phsb5321
+/tests/         @phsb5321
+/SECURITY.md    @phsb5321

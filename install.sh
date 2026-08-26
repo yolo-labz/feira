@@ -1,8 +1,8 @@
 #!/bin/sh
-# feira installer — https://github.com/phsb5321/feira
+# feira installer — https://github.com/yolo-labz/feira
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/phsb5321/feira/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/yolo-labz/feira/main/install.sh | sh
 #   ./install.sh --dry-run          # show what would happen, change nothing
 #   ./install.sh --casa ~/minha-feira
 #   ./install.sh --version v0.1.0   # pin an exact release
@@ -21,7 +21,7 @@
 
 set -eu
 
-REPO="phsb5321/feira"
+REPO="yolo-labz/feira"
 VERSION="${FEIRA_VERSION:-main}"
 PREFIX="${FEIRA_PREFIX:-${XDG_DATA_HOME:-$HOME/.local/share}/feira}"
 BINDIR="${FEIRA_BINDIR:-$HOME/.local/bin}"

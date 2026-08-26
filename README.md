@@ -56,7 +56,7 @@ Essa segunda parte é o produto. A primeira é aritmética.
 ## Instalação
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/phsb5321/feira/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/yolo-labz/feira/main/install.sh | sh
 ```
 
 Instala no seu diretório pessoal, sem `sudo`, e roda um autoteste no fim. Só
@@ -65,7 +65,7 @@ precisa de Python 3.9+, que já vem em qualquer Linux e macOS.
 Prefere ler antes de executar? É recomendado, e o script foi escrito para isso:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/phsb5321/feira/main/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/yolo-labz/feira/main/install.sh -o install.sh
 less install.sh
 sh install.sh --dry-run    # mostra tudo que faria, sem escrever nada
 sh install.sh
@@ -183,7 +183,7 @@ e um repositório recém-criado respondendo aos comandos.
 
 Versão 0.1.0. Roda diariamente numa casa em Recife desde maio de 2026; **nunca
 foi instalado por outra pessoa**. Se você for a segunda, [abra uma
-issue](https://github.com/phsb5321/feira/issues) contando o que quebrou — é a
+issue](https://github.com/yolo-labz/feira/issues) contando o que quebrou — é a
 contribuição mais útil possível agora.
 
 ## Licença

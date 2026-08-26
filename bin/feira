@@ -715,7 +715,7 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="feira",
         description="Household grocery price intelligence, stored in plain files.",
-        epilog="Docs: https://github.com/phsb5321/feira  —  `feira <command> --help` for details.",
+        epilog="Docs: https://github.com/yolo-labz/feira  —  `feira <command> --help` for details.",
     )
     p.add_argument("--version", action="version", version=f"feira {VERSION}")
     sub = p.add_subparsers(dest="comando", required=True)

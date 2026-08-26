@@ -3,7 +3,7 @@
 ## Como reportar
 
 Encontrou algo que expõe dados ou permite gasto não autorizado? Abra uma issue
-com o rótulo `security` em <https://github.com/phsb5321/feira/issues>, ou, se o
+com o rótulo `security` em <https://github.com/yolo-labz/feira/issues>, ou, se o
 problema for explorável por terceiros, mande em privado antes de publicar.
 
 Não há programa de recompensa. Há gratidão e crédito no changelog.
