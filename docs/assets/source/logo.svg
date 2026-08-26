@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"
+     role="img" aria-labelledby="feira-logo-title">
+  <title id="feira-logo-title">feira</title>
+  <!--
+    A price tag with a fraction slash knocked out of it.
+
+    The tag says "price"; the slash is the "/" in R$/kg — the one idea the whole
+    project turns on, which is that a price only means something once you divide
+    it by what you actually got.
+
+    One path, one fill, fill-rule="evenodd", so the hole and the slash are
+    knockouts rather than painted shapes: it stays monochrome-capable and needs
+    no second file for dark mode (fill="currentColor" inherits the text colour).
+
+    Proportions are tuned for 16px, not for 512px. The point is long and the two
+    knockouts are deliberately oversized — at favicon size a delicate mark turns
+    into a rounded blob, and the silhouette is the only thing that survives.
+  -->
+  <path fill="currentColor" fill-rule="evenodd" d="
+    M 12 4 H 26 A 3 3 0 0 1 29 7 V 25 A 3 3 0 0 1 26 28 H 12
+    L 2.9 17.8 A 2.7 2.7 0 0 1 2.9 14.2 Z
+    M 14.6 16 A 2.6 2.6 0 1 1 9.4 16 A 2.6 2.6 0 1 1 14.6 16 Z
+    M 18.866 22.832 L 25.866 11.332 L 23.134 9.668 L 16.134 21.168 Z
+  "/>
+</svg>

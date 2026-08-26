@@ -1,0 +1,21 @@
+flowchart TD
+    M["<b>1 · Método</b><br/>caderno ou planilha<br/><i>não precisa de nada</i>"]
+    F["<b>2 · feira</b><br/>histórico, normalização por kg/L,<br/>regra de migração<br/><i>um computador</i>"]
+    A["<b>3 · Agente</b><br/>feira-mcp — pergunta em português<br/><i>um cliente de IA</i>"]
+    E["<b>4a · Extensão</b><br/>lê preço da página aberta<br/><i>um navegador</i>"]
+    P["<b>4b · feira-fone</b><br/>monta o carrinho no app<br/><i>celular Android certificado</i>"]
+    H(["<b>Você finaliza e paga</b><br/>à mão, no app do mercado"])
+
+    M --> F
+    F --> A
+    F --> E
+    A --> P
+    E --> P
+    P -.->|"o software para aqui"| H
+
+    classDef base fill:#F6F8FA,stroke:#D0D7DE,stroke-width:1px,color:#1F2328
+    classDef core fill:#FFFFFF,stroke:#1A7F37,stroke-width:2px,color:#1F2328
+    classDef gate fill:#FFFFFF,stroke:#CF222E,stroke-width:2px,color:#1F2328
+    class M,A,E,P base
+    class F core
+    class H gate
