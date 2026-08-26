@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640"
      role="img" aria-labelledby="og-title og-desc">
-  <title id="og-title">feira — o preço que você pagou, por quilo</title>
-  <desc id="og-desc">Óleo de 900 ml a R$ 7,49 sai a R$ 8,32 por litro; o de 1 litro a R$ 7,90 sai a R$ 7,90 por litro. O mais barato na etiqueta é o mais caro por litro.</desc>
+  <title id="og-title">feira — o agente monta o carrinho, você paga</title>
+  <desc id="og-desc">Um agente experimental lê a tela do seu Android, compara por litro em vez da etiqueta e monta o carrinho. Ao chegar no botão de pagar, é recusado: quem paga é a pessoa, à mão.</desc>
 
   <!--
     GitHub social preview, 1280x640 (2:1).
@@ -9,18 +9,19 @@
     Design constraints this file is built around, from docs/pesquisa and DESIGN.md:
       - Every crop (X ~1.91:1, Slack thumbnail, Discord) centre-crops, so nothing
         load-bearing goes near the edges. Content sits inside x 88..1192, y 72..568.
-      - Under ~12 words of prose. The numbers do the arguing.
-      - The card is the actual fixture data shipped in template/dados/observacoes.csv,
-        so the image cannot drift away from what the tool really prints.
+      - Under ~12 words of prose. The steps do the arguing.
       - Text is converted to paths at render time (make assets), so it does not
         depend on a font being installed anywhere.
-      - Colour never carries meaning alone: the winning row is green AND labelled.
+      - Colour never carries meaning alone: the three steps carry a tick AND are
+        green; the refusal carries a cross AND the word RECUSADO.
+      - The last line is the product. It is the largest thing on the card on
+        purpose — at thumbnail size it is the one word that must survive.
   -->
 
   <rect width="1280" height="640" fill="#FFFFFF"/>
 
   <!-- wordmark row -->
-  <g transform="translate(88, 78)">
+  <g transform="translate(88, 70)">
     <!-- the tag mark, same geometry as logo.svg, scaled 32 -> 68 -->
     <g transform="scale(2.125)" fill="#1F2328">
       <path fill-rule="evenodd" d="
@@ -34,37 +35,53 @@
           font-size="76" font-weight="700" fill="#1F2328" letter-spacing="-1.5">feira</text>
   </g>
 
-  <text x="88" y="238" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-        font-size="38" font-weight="400" fill="#57606A">O preço que você pagou, por quilo.</text>
+  <text x="88" y="214" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
+        font-size="36" font-weight="400" fill="#57606A">O agente monta o carrinho. Você paga.</text>
 
-  <!-- demonstration card: fixture data from template/dados/observacoes.csv -->
-  <g transform="translate(88, 296)">
-    <rect width="1104" height="272" rx="10" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="2"/>
+  <!-- maturity, stated on the artwork because a social card travels alone -->
+  <g transform="translate(956, 104)">
+    <rect width="236" height="44" rx="22" fill="#FFFFFF" stroke="#CF222E" stroke-width="2"/>
+    <text x="118" y="30" text-anchor="middle"
+          font-family="DejaVu Sans, Inter, system-ui, sans-serif"
+          font-size="22" font-weight="700" fill="#CF222E">experimental</text>
+  </g>
 
-    <text x="40" y="52" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="24" fill="#57606A">na etiqueta</text>
-    <text x="1064" y="52" text-anchor="end" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="24" fill="#57606A">por litro</text>
+  <g transform="translate(88, 248)">
+    <rect width="1104" height="292" rx="10" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="2"/>
 
-    <!-- row 1: the 900 ml bottle that looks cheaper and is not -->
-    <text x="40" y="126" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="46" font-weight="600" fill="#1F2328">óleo 900 ml</text>
-    <text x="392" y="126" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="46" font-weight="400" fill="#57606A">R$ 7,49</text>
-    <text x="1064" y="126" text-anchor="end" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="52" font-weight="700" fill="#1F2328">R$ 8,32</text>
+    <!-- the three things it does, ticked -->
+    <g fill="#1A7F37">
+      <path d="M 44 50 l 11 12 l 22 -26 l 9 8 l -31 36 l -20 -21 Z"/>
+      <path d="M 44 116 l 11 12 l 22 -26 l 9 8 l -31 36 l -20 -21 Z"/>
+      <path d="M 44 182 l 11 12 l 22 -26 l 9 8 l -31 36 l -20 -21 Z"/>
+    </g>
+    <g font-family="DejaVu Sans, Inter, system-ui, sans-serif" font-size="40"
+       font-weight="600" fill="#1F2328">
+      <text x="112" y="72">lê a tela do seu Android e decide</text>
+      <text x="112" y="138">compara por litro, não pela etiqueta</text>
+      <text x="112" y="204">monta o carrinho no aparelho</text>
+    </g>
 
-    <line x1="40" y1="160" x2="1064" y2="160" stroke="#D0D7DE" stroke-width="2"/>
+    <line x1="44" y1="230" x2="1060" y2="230" stroke="#D0D7DE" stroke-width="2"/>
 
-    <!-- row 2: the 1 L bottle, dearer on the shelf, cheaper per litre -->
-    <text x="40" y="228" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="46" font-weight="600" fill="#1F2328">óleo 1 litro</text>
-    <text x="392" y="228" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="46" font-weight="400" fill="#57606A">R$ 7,90</text>
-    <text x="1064" y="228" text-anchor="end" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="52" font-weight="700" fill="#1A7F37">R$ 7,90</text>
-    <!-- label, so the meaning does not rest on the colour green alone -->
-    <text x="806" y="228" text-anchor="end" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="26" font-weight="600" fill="#1A7F37">mais barato</text>
+    <!-- and the one thing it refuses -->
+    <g fill="#CF222E">
+      <path d="M 44 252 l 9 -9 l 17 17 l 17 -17 l 9 9 l -17 17 l 17 17 l -9 9
+               l -17 -17 l -17 17 l -9 -9 l 17 -17 Z"/>
+    </g>
+    <text x="112" y="282" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
+          font-size="44" font-weight="700" fill="#CF222E">pagar</text>
+    <text x="1060" y="282" text-anchor="end"
+          font-family="DejaVu Sans, Inter, system-ui, sans-serif"
+          font-size="44" font-weight="700" fill="#CF222E">RECUSADO</text>
+  </g>
+
+  <!--
+    The card is shared on its own and cannot carry a paragraph of context, so
+    the product's maturity is part of the artwork rather than something the
+    reader is trusted to look up. "experimental" is the honest name for the
+    phone layer's state, not a legal disclaimer.
+  -->
+  <g transform="translate(88, 248)">
   </g>
 </svg>

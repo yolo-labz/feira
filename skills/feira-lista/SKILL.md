@@ -41,12 +41,40 @@ does not enter the list because it was on sale.
 
 ### 1. What is actually missing
 
-Read `despensa/*.md`. An item enters the list when its quantity is at or below
-its `ponto_de_recompra`.
+```bash
+feira falta --json
+```
 
-Check the file's freshness. If the pantry has not been updated since before the
-last shop, the quantities are fiction — say so, and offer to rebuild it from the
-last receipt (`feira-nota-fiscal`) instead of pretending.
+Four verdicts, and the boring ones carry as much weight as the loud one:
+
+| verdict | what it means | what you do |
+|---|---|---|
+| `REPOR` | counted today, at or below the reorder point | put it on the list |
+| `CONFERIR` | even the slowest rate ever observed reaches the reorder point | ask the person to look, then decide |
+| `MANTER` | the dated count still has slack | leave it off |
+| `COLETAR` | under 6 purchases, or no dated count | say you do not know — do not guess |
+
+**`CONFERIR` is not `REPOR`.** The command reads purchases, and a purchase is
+evidence that somebody bought something, not that the house consumed it.
+Stock-ups, promotions, guests and a forgotten receipt all move those intervals.
+Never translate `CONFERIR` into "you are out of X" — translate it into "worth a
+look before we send this".
+
+Never state a remaining quantity or a run-out date. The tool refuses to compute
+them because they are not knowable from this data, and inventing them in prose
+is the same error with better grammar.
+
+Read `despensa/*.md` alongside it for the raw counts and the `Confirmado em`
+date. Say the age out loud — "contou 3 há 21 dias" — rather than presenting a
+three-week-old number as the current state. If the pantry has not been touched
+since before the last shop, the quantities are fiction: say so, and offer to
+rebuild from the last receipt (`feira-nota-fiscal`) instead of pretending.
+
+To see how a household's rhythm actually looks before judging it:
+
+```bash
+feira historico <sku>        # dated timeline, gaps, observed replenishment
+```
 
 ### 2. Where each thing should come from
 

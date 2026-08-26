@@ -16,12 +16,14 @@ RENDERED := docs/assets/rendered
 
 help:
 	@echo 'make assets   regenerate rendered images from source'
-	@echo 'make demo     re-record the terminal cast and GIF'
+	@echo 'make demo     re-record the CLI terminal cast and GIF'
+	@echo 'make demo-fone  re-record the phone-loop cast (needs a real phone)'
 	@echo 'make check    tests + asset checks'
 
 all: assets
 
-assets: $(RENDERED)/social-preview.png $(RENDERED)/demo.gif $(RENDERED)/demo.png
+assets: $(RENDERED)/social-preview.png $(RENDERED)/demo.gif $(RENDERED)/demo.png \
+        $(RENDERED)/demo-fone.gif $(RENDERED)/demo-fone.png
 
 # Text is flattened to paths (-T) so the card renders identically on a machine
 # that has none of the fonts named in the SVG.
@@ -38,8 +40,30 @@ $(RENDERED)/demo.gif: $(SOURCE)/demo.cast
 	    --idle-time-limit 0.7 --last-frame-duration 4 $< $@
 	@echo "  $@ -> $$(identify -format '%wx%h %n frames %b' $@ | head -1)"
 
+# The phone demo carries its disclosure BURNED INTO EVERY FRAME, not beside the
+# image. A GIF gets screenshotted, embedded and reshared with the prose stripped
+# off, and this one shows a real handset being driven through a purchase — the
+# single most misreadable thing in the repository. The caption is the only part
+# of the disclosure that travels with it.
+BANNER_FONT := $(shell fc-match 'DejaVu Sans:bold' -f '%{file}')
+
+$(RENDERED)/demo-fone.gif: $(SOURCE)/demo-fone.cast
+	@mkdir -p $(RENDERED)
+	agg --font-size 15 --line-height 1.35 --theme github-light --speed 1.4 \
+	    --idle-time-limit 0.7 --last-frame-duration 4 $< $@.tmp.gif
+	magick $@.tmp.gif -coalesce -gravity south -background '#CF222E' -splice 0x56 \
+	    -font '$(BANNER_FONT)' -fill white \
+	    -pointsize 19 -annotate +0+30 'VITRINE LOCAL DE DEMONSTRAÇÃO — NÃO É IFOOD NEM APP DE ENTREGA' \
+	    -pointsize 15 -annotate +0+8  'gravação real num Android físico · feira-fone é experimental' \
+	    -layers optimize $@
+	@rm -f $@.tmp.gif
+	@echo "  $@ -> $$(identify -format '%wx%h %n frames %b' $@ | head -1)"
+
 # Static fallback: the final frame, for anyone who cannot see the animation.
 $(RENDERED)/demo.png: $(RENDERED)/demo.gif
+	magick $< -coalesce -delete 0--2 $@
+
+$(RENDERED)/demo-fone.png: $(RENDERED)/demo-fone.gif
 	magick $< -coalesce -delete 0--2 $@
 
 # 100 columns because the widest line feira prints is 96; at 80 it wraps and the
@@ -48,6 +72,15 @@ demo:
 	FEIRA="$$PWD/bin/feira" asciinema rec --window-size 100x30 --overwrite \
 	  -c "sh $(SOURCE)/demo.sh" $(SOURCE)/demo.cast
 	$(MAKE) $(RENDERED)/demo.gif $(RENDERED)/demo.png
+
+# Needs a real phone attached and the fixture storefront open on it:
+#   python3 -m http.server 8099 --directory $(SOURCE)   # then open the page
+# See docs/assets/source/demo-fone.sh for the full preconditions.
+demo-fone:
+	FEIRA="$$PWD/bin/feira" FONE="$$PWD/bin/feira-fone" \
+	  asciinema rec --window-size 100x30 --overwrite \
+	  -c "sh $(SOURCE)/demo-fone.sh" $(SOURCE)/demo-fone.cast
+	$(MAKE) $(RENDERED)/demo-fone.gif $(RENDERED)/demo-fone.png
 
 check: test check-assets
 

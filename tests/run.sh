@@ -21,6 +21,7 @@ run() {
 run "feira — units, numbers, migration rule" python3 bin/feira selftest
 run "feira-fone — payment gate, element matching" python3 tests/test_fone.py
 run "feira-mcp — protocol, failures, and no payment capability" python3 tests/test_mcp.py
+run "feira — receipts import once, history, and low stock" python3 tests/test_historico.py
 
 if command -v node >/dev/null 2>&1; then
   run "extension — page collector parsing" node tests/coletor.test.mjs
@@ -42,7 +43,7 @@ check_template() {
   # shellcheck disable=SC2064  # expand $tmp now, not at trap time
   trap "rm -rf '$tmp'" EXIT
   python3 "$bin" init "$tmp" >/dev/null || return 1
-  for cmd in check advise; do
+  for cmd in check advise falta historico zap; do
     ( cd "$tmp" && python3 "$bin" "$cmd" >/dev/null ) || {
       printf 'feira %s failed on a fresh repository\n' "$cmd"; return 1; }
   done

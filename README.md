@@ -1,6 +1,6 @@
 <p align="center">
   <img src="docs/assets/rendered/social-preview.png" width="640"
-       alt="feira — o preço que você pagou, por quilo. Óleo de 900 ml a R$ 7,49 sai a R$ 8,32 por litro; o de 1 litro a R$ 7,90 sai a R$ 7,90 por litro, e é o mais barato.">
+       alt="feira — o agente monta o carrinho, você paga. Um cartão lista três coisas que o agente faz, marcadas com visto verde: lê o preço dentro do app do mercado, compara por litro e não pela etiqueta, e monta o carrinho no aparelho. Abaixo, marcada com um xis vermelho, a ação que ele recusa: pagar — RECUSADO.">
 </p>
 
 <p align="center">
@@ -10,27 +10,89 @@
 
 # feira
 
-**Compara o preço que a sua casa pagou por mercado — normalizado por quilo, litro
-ou unidade — e só recomenda trocar de mercado quando a diferença compensa a
-troca.**
+**Para onde este projeto vai: um agente que pesquisa preço dentro dos
+aplicativos de entrega, no seu celular, monta o carrinho — e para. Você confere
+e finaliza a compra com o dedo, no app.**
 
-Um exemplo, dos dados que acompanham o projeto: óleo de **900 ml a R$ 7,49** sai
-a **R$ 8,32 por litro**; o de **1 litro a R$ 7,90** sai a **R$ 7,90 por litro**.
-O da etiqueta menor é 5% mais caro. Comparar etiqueta com etiqueta escolhe
-errado, e nada no recibo avisa.
+Ele não para porque não conseguiu ir adiante. Para porque essa é a fronteira, e
+ela é código: tocar num botão de pagamento é recusado, e no servidor MCP a
+ferramenta de pagar **não existe**.
 
-O [**método**](docs/02-o-metodo.md) funciona numa planilha, sem instalar nada — é
-a camada que economiza dinheiro. O software só automatiza a conta.
+**O que já existe, e o que ainda não** — vale ler as duas linhas antes de
+esperar um botão:
 
-> **Não faz compra e não paga nada.** Quem finaliza e paga é você, à mão, no
-> aplicativo do mercado. E o `feira` instalado **não faz nenhuma chamada de
-> rede**: os seus dados ficam na sua máquina.
+| | |
+|---|---|
+| ✅ hoje | num Android físico, o `feira-fone` lê a tela, decide, monta o carrinho e recusa o pagamento — foi assim que a demo abaixo foi gravada, contra uma **vitrine de demonstração** |
+| ⏳ ainda não | fazer isso **dentro de um aplicativo de entrega real**. Nenhum foi automatizado, e não há lista de apps suportados |
 
-<a href="docs/02-o-metodo.md"><b>Começar sem instalar nada →</b></a> &nbsp;·&nbsp;
+O `feira-fone` é **experimental**: uma casa, um aparelho, sem release. As camadas
+de baixo — o método e o CLI — são **estáveis**.
+
+> **Sem celular nenhum, o projeto já serve para alguma coisa:** o CLI compara o
+> que a sua casa pagou, normalizado por quilo ou litro, e diz se vale trocar de
+> mercado. É a parte que economiza dinheiro hoje, sem hardware e sem
+> automação — [pule direto para ela](#o-cli-sem-celular-nenhum).
+
+<a href="#a-demo">Ver funcionando →</a> &nbsp;·&nbsp;
+<a href="#o-que-precisa-para-o-ciclo-completo">O que precisa</a> &nbsp;·&nbsp;
 <a href="#instalação">Instalar</a> &nbsp;·&nbsp;
-<a href="#a-demo">Ver funcionando</a>
+<a href="docs/02-o-metodo.md">Começar sem instalar nada</a>
 
 ---
+
+## A demo
+
+Uma gravação de verdade: um celular Android de verdade, lendo a tela de verdade,
+e recusando o pagamento de verdade no fim.
+
+![Terminal: feira-fone dispositivos mostra um moto g06 conectado; feira-fone tela lê a vitrine e imprime os preços — óleo Liza 900 ml a R$ 7,49 e óleo Soya 1 L a R$ 7,90; feira compare oleo-de-soja mostra que o de 900 ml sai a R$ 8,32 por litro e o de 1 L a R$ 7,90, com veredito MANTER porque a diferença de 5,1% fica abaixo do limite de 8%; feira-fone tocar Adicionar Soya toca o botão e confirma que a tela mudou; feira-fone tocar Pagar é RECUSADO porque o texto casa com a palavra de pagamento. Uma tarja vermelha no rodapé de todos os quadros avisa que a vitrine é local e não é um aplicativo de entrega.](docs/assets/rendered/demo-fone.gif)
+
+O ciclo inteiro, em cinco comandos:
+
+| | |
+|---|---|
+| `feira-fone dispositivos` | um aparelho físico, homologado. Emulador não serve |
+| `feira-fone tela` | lê os preços **da tela do app**, não de um catálogo |
+| `feira compare` | decide — e aqui a etiqueta mais barata **perde** |
+| `feira-fone tocar` | monta o carrinho, e confere que a tela mudou |
+| `feira-fone tocar 'Pagar'` | **RECUSADO** |
+
+Repare no terceiro passo, que é onde o dinheiro está: o óleo de **900 ml a
+R$ 7,49** sai a **R$ 8,32 por litro**; o de **1 litro a R$ 7,90** sai a
+**R$ 7,90**. A etiqueta menor é 5% mais cara. E, mesmo tendo achado o mais
+barato, o veredito é **MANTER** — 5,1% não paga a troca de mercado.
+
+Um agente que só busca "o mais barato" erra as duas coisas.
+
+> **A vitrine é de mentira, o resto não é.** Os produtos vêm de
+> [`vitrine-fixture.html`](docs/assets/source/vitrine-fixture.html), uma página
+> com os mesmos itens de exemplo do `template/`. Gravar contra um aplicativo de
+> entrega real significaria abrir a conta de alguém — com endereço e histórico
+> de pedidos — para fazer material de divulgação, e dirigir o app de um terceiro
+> para isso. O `feira-fone`, o `adb`, a leitura da tela e a recusa são reais.
+> Quadro estático: [`demo-fone.png`](docs/assets/rendered/demo-fone.png).
+> Gravação: [`demo-fone.cast`](docs/assets/source/demo-fone.cast).
+
+## O que precisa para o ciclo completo
+
+**Um celular Android físico**, homologado pelo Google Play, com depuração USB
+ligada e ligado à máquina. **Nos aplicativos e ambientes aferidos em
+25/08/2026**, emuladores não concluíram o fluxo de pagamento — alguns apps
+exigem aparelho físico homologado através de verificações como o Play Integrity,
+cada app decide a própria política, e isso pode mudar.
+[O levantamento](docs/pesquisa/harness-de-login.md), com o que foi e o que não
+foi testado.
+
+> ⚠️ **Use só a sua própria conta, e leia os termos do aplicativo.** Automatizar
+> app de terceiro pode contrariar os termos de uso dele; a consequência
+> realista é a conta ser bloqueada, e a conta é sua. Ver o
+> [aviso legal](DISCLAIMER.md).
+
+**Sem o aparelho, nada disso é desperdício.** As camadas de baixo respondem *o
+que comprar e onde* sozinhas, num computador comum — o que falta é só quem
+aperta os botões. É por elas que vale começar, e é a partir daqui que este
+README trata delas.
 
 ## Em 30 segundos
 
@@ -43,30 +105,33 @@ mercado custa frete, pedido mínimo e tempo — por isso existe um limiar, e por
 isso o veredito mais comum é *não mude nada*.
 
 A pesquisa de preço acontece **nas suas próprias contas**: a
-[extensão](extensao/) lê a página que você abriu, e o
-[`feira-fone`](#o-ciclo-completo--o-celular) lê os aplicativos de entrega no seu
-celular. Nada disso é um servidor consultando um catálogo por aí — é o que a sua
-conta vê, no seu aparelho: o `feira` não chama serviço externo nenhum; quem fala
-com a rede são o seu navegador e os apps do seu celular, na sua sessão.
+[extensão](extensao/) lê a página que você abriu, e o `feira-fone` lê os
+aplicativos de entrega no seu celular. Nada disso é um servidor consultando um
+catálogo por aí — é o que a sua conta vê, no seu aparelho: o `feira` não chama
+serviço externo nenhum; quem fala com a rede são o seu navegador e os apps do
+seu celular, na sua sessão.
 
 **O que ele nunca faz:** comprar, pagar, ou prometer uma porcentagem de
 economia.
 
-## A demo
+O [**método**](docs/02-o-metodo.md) funciona numa planilha, sem instalar nada. O
+software só automatiza a conta.
+
+## O CLI, sem celular nenhum
 
 ![Terminal: feira init cria um repositório de exemplo; feira compare oleo-de-soja mostra atacarejo-online a R$ 7,90 por litro contra mercado-do-bairro a R$ 8,32, com o veredito MANTER porque a diferença de 5,1% está abaixo do limite de 8%; feira advise lista MIGRAR para o arroz, COLETAR para o papel higiênico e MANTER para o resto.](docs/assets/rendered/demo.gif)
 
 Duas coisas acontecem aí, e as duas importam:
 
-1. **A ordem inverteu** — o caso do óleo lá de cima, agora com as três amostras
-   de cada mercado e a mediana.
+1. **A ordem inverteu** — o caso do óleo, agora com as três amostras de cada
+   mercado e a mediana.
 2. **Mesmo assim, ele manda ficar onde está.** A política padrão não recomenda
    trocar abaixo de 8% de diferença, com pelo menos 3 observações no mercado
    desafiante. [Por que esses números](skills/feira-precos/referencia/regra-de-migracao.md).
 
 Essa segunda parte é o produto. A primeira é aritmética.
 
-> Os números da demo saem dos dados de exemplo em `template/` — rode
+> Os números saem dos dados de exemplo em `template/` — rode
 > `feira compare oleo-de-soja` e você vê exatamente a mesma coisa. Quadro
 > estático: [`demo.png`](docs/assets/rendered/demo.png). Gravação original em
 > asciicast: [`demo.cast`](docs/assets/source/demo.cast).
@@ -116,16 +181,110 @@ feira advise
 O repositório já vem com dados de exemplo, então `feira advise` responde alguma
 coisa desde o primeiro minuto.
 
-## O ciclo completo — o celular
+## Começar pelas notas que você já tem
 
-O destino do projeto — e o que o `feira-fone` está construindo — é este: **um
-agente que pesquisa preço dentro dos aplicativos de entrega, no seu celular,
-monta o carrinho, e para.** Você confere e finaliza a compra com o dedo, no app.
+Você não precisa digitar meses de compra para o `feira` ter o que dizer. Baixe
+os XML das suas notas fiscais no portal da SEFAZ do seu estado e aponte a pasta:
 
-> **Estado real, hoje:** o `feira-fone` é **experimental**. Ele lê a tela, acha
-> elemento por texto e toca com verificação — e foi exercitado numa casa, num
-> aparelho. Não há release publicada, nem suporte declarado a uma lista de apps.
-> O parágrafo acima descreve para onde isto vai, não um botão que já existe.
+```sh
+feira nfce ~/notas             # lê e mostra, sem gravar nada
+feira nfce ~/notas --importar  # grava como observações
+```
+
+A leitura é local: o `feira` abre o arquivo que você baixou e não fala com a
+SEFAZ nem com ninguém. **Importar duas vezes é seguro** — cada nota é gravada
+com a chave de acesso, e a segunda passada pula o que já entrou:
+
+```
+imported 0 observations into dados/observacoes.csv
+skipped 3 receipt(s) already imported — matched by access key
+```
+
+Depois de importar, os nomes vêm do jeito que o mercado digitou —
+`ol-soja-liza-900` e `oleo-soja-liza-900ml` são o mesmo óleo, e enquanto
+estiverem separados cada um conta como uma amostra só.
+[Como juntar](docs/how-to/casar-skus.md) leva dez minutos, uma vez.
+
+## O que a casa comprou, e quando
+
+```sh
+feira historico                    # gasto por mês
+feira historico oleo-de-soja       # a linha do tempo de um item
+feira historico --desde 2026-01-01 --mercado atacarejo-online
+```
+
+```
+  2026-07      R$ 72,81  ██████████                2 itens, 3 mercado(s)
+  2026-08     R$ 168,57  ████████████████████████  3 itens, 3 mercado(s)
+
+  oleo-de-soja — 6 compras
+
+    15/07/2026           0.900 L      R$ 7,49  mercado-do-bairro
+    19/07/2026    +4d    1.000 L      R$ 7,90  atacarejo-online
+    …
+    reposição observada: mediana 0.129 L/dia, mais lenta 0.100
+    (ritmo de COMPRA, não de consumo — promoção e estoque mexem nisso)
+```
+
+## O que talvez esteja faltando
+
+```sh
+feira falta
+```
+
+```
+  CONFERIR NA DESPENSA
+    oleo-de-soja        contou 1 há 7 dia(s); num ritmo lento para esta casa
+                        isso já alcança o ponto de recompra
+
+  SEM BASE AINDA (2 itens)
+    arroz-tio-joao-1kg  ritmo irregular demais para estimar — o mais rápido
+                        observado foi 11.7× o mais lento
+    papel-higienico-30m 2 compra(s) nos últimos 365 dias, 1 ciclo(s)
+```
+
+**Uma compra prova que alguém comprou, não que a casa consumiu.** Estoque,
+promoção, visita e viagem mexem no intervalo entre as compras, então este
+comando nunca diz que algo acabou, nunca chuta quanto resta e nunca dá uma data.
+Ele diz **onde vale a pena olhar**.
+
+Ele cala a boca com facilidade, e isso é o recurso funcionando:
+
+| responde `COLETAR` quando | por quê |
+|---|---|
+| menos de 6 compras no último ano | uma ida ao mercado decidiria a resposta sozinha |
+| não há contagem **datada** na despensa | um número sem data não diz se você contou hoje ou em março |
+| o ritmo mais rápido passa de 3× o mais lento | aí não há ritmo — o número seria fruto do maior intervalo, não da casa |
+| a contagem e as compras estão em unidades diferentes | comparar litro com unidade dá um número, nunca uma resposta |
+
+O exemplo do arroz acima é de propósito: quem compra saco de 5 kg no atacarejo
+**e** pacote de 1 kg na esquina tem dois ritmos misturados, e o programa admite
+que não sabe separá-los em vez de inventar uma média.
+
+E a estimativa se apoia num **ritmo lento** da casa — um quartil baixo, não a
+mediana e não o mínimo. O mínimo parece a escolha conservadora e é uma armadilha:
+ele só pode cair conforme você registra mais compras, então o programa ficaria
+mais calado quanto mais aprendesse, e uma viagem de duas semanas calaria o item
+para sempre. Tem um teste no `feira selftest` que quebra se alguém trocar de volta.
+
+## Mandar o pedido para o vendedor
+
+Boa parte do mercado de bairro não tem site — tem um número de WhatsApp. O
+`feira` escreve a mensagem; **enviar é com você**:
+
+```sh
+feira zap                  # o pedido do que está faltando
+feira zap oleo-de-soja     # uma pergunta de preço
+```
+
+Ele imprime o texto e o comando pronto para o
+[`wa`](https://github.com/yolo-labz/wa) — um daemon de WhatsApp com lista de
+permissão por número, limite de taxa sem `--force` e registro do que saiu. O
+`feira` não tem código de rede, não guarda o seu número e não consegue enviar
+nada: [a mesma fronteira do pagamento](docs/how-to/whatsapp-com-o-wa.md), pelo
+mesmo motivo.
+
+## Onde a fronteira fica, e por quê
 
 ```
   agente  →  celular  →  apps de entrega  →  preços → histórico
@@ -133,31 +292,24 @@ monta o carrinho, e para.** Você confere e finaliza a compra com o dedo, no app
               você finaliza  ←  carrinho montado  ←  decisão
 ```
 
-Por que o último passo é seu, e continua sendo: um agente que erra uma compra
-apaga em confiança o que muitas compras certas construíram, e quem discute com o
-mercado e com a operadora do cartão é você. **Não é limitação técnica — é onde
-a fronteira foi posta de propósito.** No `feira-fone` isso é código: tocar num
-botão de pagamento é recusado sem `--eu-confirmo` naquela invocação, e não existe
-modo "confirmar sempre". No servidor MCP a fronteira é mais forte ainda: a
-ferramenta de pagamento **não existe**.
+Um agente que erra uma compra apaga em confiança o que muitas compras certas
+construíram, e quem discute com o mercado e com a operadora do cartão é você.
+**Não é limitação técnica — é onde a fronteira foi posta de propósito.**
 
-**Para usar a camada 4b você precisa de um Android físico**, homologado pelo
-Google Play, com depuração USB ligada e conectado à máquina. **Nos aplicativos e
-ambientes aferidos em 25/08/2026**, emuladores não concluíram o fluxo de
-pagamento — alguns apps exigem aparelho físico homologado através de verificações
-como o Play Integrity, cada app decide a própria política, e isso pode mudar.
-[O levantamento](docs/pesquisa/harness-de-login.md), com o que foi e o que não
-foi testado.
+Ela existe em três alturas diferentes, e nenhuma delas é um parágrafo de README:
 
-> ⚠️ **Use só a sua própria conta, e leia os termos do aplicativo.** Automatizar
-> app de terceiro pode contrariar os termos de uso dele; a consequência realista
-> é a conta ser bloqueada, e a conta é sua. O suporte a cada plataforma pode
-> mudar sem aviso, e a automação pode ser barrada por ela. Ver o
-> [aviso legal](DISCLAIMER.md).
+| Onde | O que impede |
+|---|---|
+| `feira-fone` | tocar num botão de pagamento é recusado sem `--eu-confirmo` **naquela invocação**; não existe modo "confirmar sempre" |
+| `feira-mcp` | a ferramenta de pagar **não existe** — não há portão para um modelo contornar, nem aprovação para forjar |
+| `feira` | não tem código de rede: não fala com mercado, com API nem com servidor nenhum |
 
-Sem o aparelho, as camadas 1 a 3 funcionam sozinhas e já respondem *onde comprar*
-— o que falta é quem aperta os botões.
-[Como montar](skills/feira-pedido/referencia/tier-3-android.md).
+A terceira linha é a mais forte das três, e é a mais fácil de subestimar:
+**segurança por ausência de capacidade.** Um teste garante que nenhuma
+ferramenta MCP consiga pedir ou pagar, e ele foi validado ao contrário —
+plantando uma ferramenta de pagamento falsa para ver o teste quebrar.
+
+[Como montar a camada do celular](skills/feira-pedido/referencia/tier-3-android.md).
 
 ## Por que não é mais um comparador de preços
 
@@ -203,8 +355,10 @@ nada além de papel. O `feira` (camada 2) automatiza a aritmética dele num
 computador. Em cima disso, um agente de IA consulta os dados pelo `feira-mcp`
 (camada 3), uma extensão captura preços da página que você já está vendo (4a), e
 o `feira-fone` pesquisa preço dentro dos aplicativos de entrega no seu celular e
-monta o carrinho (4b) — que é onde o ciclo fecha. **O software para antes do
-pagamento**: finalizar e pagar é sempre a pessoa, à mão, no app do mercado.
+monta o carrinho (4b) — que é onde o ciclo fecha. **O software para no botão de
+pagar**: ele recusa esse toque, e só segue se a pessoa confirmar naquela
+invocação, com `--eu-confirmo`. Quem decide pagar é sempre a pessoa; o toque em
+si pode ser dado pelo programa, depois que ela autorizou.
 Detalhes em [as quatro camadas](docs/explicacao/camadas.md).
 
 ## Conversar com ele
@@ -245,6 +399,21 @@ desde maio de 2026. **Não há instalação externa conhecida** — se você for
 primeira, [abra uma issue](https://github.com/yolo-labz/feira/issues) contando o
 que quebrou. É a contribuição mais útil possível agora.
 
+As camadas não estão no mesmo ponto, e vale saber qual é qual antes de contar
+com alguma:
+
+| Camada | Estado |
+|---|---|
+| o método, numa planilha | estável — não depende deste repositório para nada |
+| `feira` (CLI) | estável, com suíte de testes que roda no CI |
+| `feira-mcp` | estável; 11 ferramentas, nenhuma capaz de pedir ou pagar |
+| extensão de navegador | funciona, sem loja — carregada como extensão sem empacotar |
+| `feira-fone` (o celular) | **experimental** — uma casa, um aparelho, sem lista de apps suportados |
+
+A demo do celular é uma gravação real, mas contra uma vitrine de mentira. Nenhum
+aplicativo de entrega real foi automatizado para produzir material deste
+repositório.
+
 **O que ainda não foi medido:** nenhuma economia foi apurada contra uma linha de
 base controlada. O projeto não promete porcentagem, e
 [o caso](docs/01-o-caso.md#o-que-ainda-não-está-provado) diz exatamente o que
@@ -278,19 +447,28 @@ automatizar qualquer coisa que gaste dinheiro.
 
 ### In English
 
-**feira** compares what your household paid for groceries — entered by hand,
-parsed from Brazilian NFC-e electronic receipts, or read out of the delivery apps
-on your own phone — normalised to price per kg/L/unit, and only recommends
-switching shops when the gap clears a threshold (8% by default) with enough
-samples (3). Most weeks it says *stay put*, which is the point.
-
-The full loop is an agent that researches prices **inside the delivery apps on a
+**feira** is an agent that researches prices **inside the delivery apps on a
 phone you own**, builds the cart, and then stops. You check it and tap pay
-yourself. That last step is a deliberate boundary, not a missing feature: an
-agent that gets one R$ 30 order wrong costs more in trust than the method saves
-in a month, and it is you, not the software, who argues with the shop and the
-card issuer. It needs real hardware — a certified Android handset; emulators fail
-Play Integrity precisely at the payment step.
+yourself.
+
+It does not stop because it ran out of road. That last step is a deliberate
+boundary: an agent that gets one order wrong costs more in trust than the method
+saves in a month, and it is you, not the software, who argues with the shop and
+the card issuer. The boundary is code — `feira-fone` refuses to tap a payment
+button without `--eu-confirmo` on that exact invocation, and the MCP server has
+no payment tool to reach for at all.
+
+The phone layer is **experimental**: exercised in one household, on one handset,
+with no release and no declared list of supported apps. It also needs real
+hardware — a Play-certified Android handset; **in the apps and environments
+tested on 25/08/2026**, emulators did not complete the payment flow.
+
+Underneath it, and useful on their own with no phone at all, are the parts that
+decide *what* to buy and *where*: it compares what your household actually paid —
+typed in, parsed from Brazilian NFC-e electronic receipts, or read from the apps —
+normalised to price per kg/L/unit, and only recommends switching shops when the
+gap clears a threshold (8% by default) with enough samples (3). Most weeks it
+says *stay put*, which is the point.
 
 Plain-text data, stdlib Python, zero runtime dependencies, no API key. The
 installed tool makes **no network calls**. It ships an MCP server over stdio with
@@ -299,7 +477,8 @@ can be assisted on a physical Android phone, but a human always taps pay.
 
 **Maturity:** 0.1.0, **no release published**, and **no savings have been
 measured against a controlled baseline** — the project deliberately promises no
-percentage. There is no known external installation yet.
+percentage. The CLI and the method are stable; the phone layer is experimental.
+There is no known external installation yet.
 
 Docs are Portuguese-first because the domain is Brazilian retail. The
 [method](docs/02-o-metodo.md) works on a spreadsheet with no software at all.
