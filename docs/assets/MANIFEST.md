@@ -34,8 +34,8 @@ legível no `git diff`.
 | `social-preview.png` | 1280×640 | ~68 KB | ≤ 1024 KB (teto do GitHub) | `make assets` |
 | `demo.gif` | 921×628, 45 quadros | ~78 KB | ≤ 900 KB | `make demo` |
 | `demo.png` | 921×628 | ~45 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
-| `demo-fone.gif` | 921×628, 70 quadros | ~281 KB | ≤ 900 KB | `make demo-fone` (exige celular) |
-| `demo-fone.png` | 921×628 | ~20 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
+| `demo-fone.gif` | 921×684, 70 quadros | ~249 KB | ≤ 900 KB | `make demo-fone` (exige celular) |
+| `demo-fone.png` | 921×684 | ~25 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
 
 Os orçamentos são verificados por `scripts/check-assets.py`, que **quebra o CI**
 se uma peça engordar. O do GIF é bem mais apertado que o formato permite porque
@@ -76,6 +76,14 @@ casa real fora dela.
 O serial do aparelho é mascarado na gravação: ele é alcançado por uma rede
 privada, e esse endereço é infraestrutura, não algo que um README precise
 publicar.
+
+**A ressalva é gravada dentro do quadro, não ao lado dele.** Os 56 px de tarja
+vermelha no rodapé de *todos* os quadros — "VITRINE LOCAL DE DEMONSTRAÇÃO — NÃO
+É IFOOD NEM APP DE ENTREGA" — existem porque GIF é print: ele é recortado,
+incorporado e recompartilhado sem uma linha do texto à volta. Como a peça mostra
+um aparelho real sendo conduzido por uma compra, é a coisa mais fácil de ler
+errado no repositório inteiro, e a tarja é a única parte da ressalva que viaja
+junto. Ela é aplicada pelo `make`, não à mão.
 
 Para refazer: sirva `docs/assets/source/` em HTTP, abra a vitrine no aparelho e
 rode `make demo-fone`. As pré-condições estão no cabeçalho do `demo-fone.sh`, e

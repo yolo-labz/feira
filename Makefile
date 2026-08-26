@@ -40,10 +40,23 @@ $(RENDERED)/demo.gif: $(SOURCE)/demo.cast
 	    --idle-time-limit 0.7 --last-frame-duration 4 $< $@
 	@echo "  $@ -> $$(identify -format '%wx%h %n frames %b' $@ | head -1)"
 
+# The phone demo carries its disclosure BURNED INTO EVERY FRAME, not beside the
+# image. A GIF gets screenshotted, embedded and reshared with the prose stripped
+# off, and this one shows a real handset being driven through a purchase — the
+# single most misreadable thing in the repository. The caption is the only part
+# of the disclosure that travels with it.
+BANNER_FONT := $(shell fc-match 'DejaVu Sans:bold' -f '%{file}')
+
 $(RENDERED)/demo-fone.gif: $(SOURCE)/demo-fone.cast
 	@mkdir -p $(RENDERED)
 	agg --font-size 15 --line-height 1.35 --theme github-light --speed 1.4 \
-	    --idle-time-limit 0.7 --last-frame-duration 4 $< $@
+	    --idle-time-limit 0.7 --last-frame-duration 4 $< $@.tmp.gif
+	magick $@.tmp.gif -coalesce -gravity south -background '#CF222E' -splice 0x56 \
+	    -font '$(BANNER_FONT)' -fill white \
+	    -pointsize 19 -annotate +0+30 'VITRINE LOCAL DE DEMONSTRAÇÃO — NÃO É IFOOD NEM APP DE ENTREGA' \
+	    -pointsize 15 -annotate +0+8  'gravação real num Android físico · feira-fone é experimental' \
+	    -layers optimize $@
+	@rm -f $@.tmp.gif
 	@echo "  $@ -> $$(identify -format '%wx%h %n frames %b' $@ | head -1)"
 
 # Static fallback: the final frame, for anyone who cannot see the animation.

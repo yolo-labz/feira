@@ -10,18 +10,29 @@
 
 # feira
 
-**Um agente que pesquisa preço dentro dos aplicativos de entrega, no seu
-celular, monta o carrinho — e para. Você confere e finaliza a compra com o dedo,
-no app.**
+**Para onde este projeto vai: um agente que pesquisa preço dentro dos
+aplicativos de entrega, no seu celular, monta o carrinho — e para. Você confere
+e finaliza a compra com o dedo, no app.**
 
 Ele não para porque não conseguiu ir adiante. Para porque essa é a fronteira, e
 ela é código: tocar num botão de pagamento é recusado, e no servidor MCP a
 ferramenta de pagar **não existe**.
 
-> **Estado real, hoje:** o `feira-fone` é **experimental** — exercitado numa
-> casa, num aparelho, sem release publicada e sem lista de aplicativos
-> suportados. As camadas de baixo (o método e o CLI) são estáveis e funcionam
-> sozinhas. Leia isto antes de esperar um botão que ainda não existe.
+**O que já existe, e o que ainda não** — vale ler as duas linhas antes de
+esperar um botão:
+
+| | |
+|---|---|
+| ✅ hoje | num Android físico, o `feira-fone` lê a tela, decide, monta o carrinho e recusa o pagamento — foi assim que a demo abaixo foi gravada, contra uma **vitrine de demonstração** |
+| ⏳ ainda não | fazer isso **dentro de um aplicativo de entrega real**. Nenhum foi automatizado, e não há lista de apps suportados |
+
+O `feira-fone` é **experimental**: uma casa, um aparelho, sem release. As camadas
+de baixo — o método e o CLI — são **estáveis**.
+
+> **Sem celular nenhum, o projeto já serve para alguma coisa:** o CLI compara o
+> que a sua casa pagou, normalizado por quilo ou litro, e diz se vale trocar de
+> mercado. É a parte que economiza dinheiro hoje, sem hardware e sem
+> automação — [pule direto para ela](#o-cli-sem-celular-nenhum).
 
 <a href="#a-demo">Ver funcionando →</a> &nbsp;·&nbsp;
 <a href="#o-que-precisa-para-o-ciclo-completo">O que precisa</a> &nbsp;·&nbsp;
@@ -35,7 +46,7 @@ ferramenta de pagar **não existe**.
 Uma gravação de verdade: um celular Android de verdade, lendo a tela de verdade,
 e recusando o pagamento de verdade no fim.
 
-![Terminal: feira-fone dispositivos mostra um moto g06 conectado; feira-fone tela lê a vitrine e imprime os preços — óleo Liza 900 ml a R$ 7,49 e óleo Soya 1 L a R$ 7,90; feira compare oleo-de-soja mostra que o de 900 ml sai a R$ 8,32 por litro e o de 1 L a R$ 7,90, com veredito MANTER porque a diferença de 5,1% fica abaixo do limite de 8%; feira-fone tocar Adicionar Soya toca o botão e confirma que a tela mudou; feira-fone tocar Pagar é RECUSADO porque o texto casa com a palavra de pagamento.](docs/assets/rendered/demo-fone.gif)
+![Terminal: feira-fone dispositivos mostra um moto g06 conectado; feira-fone tela lê a vitrine e imprime os preços — óleo Liza 900 ml a R$ 7,49 e óleo Soya 1 L a R$ 7,90; feira compare oleo-de-soja mostra que o de 900 ml sai a R$ 8,32 por litro e o de 1 L a R$ 7,90, com veredito MANTER porque a diferença de 5,1% fica abaixo do limite de 8%; feira-fone tocar Adicionar Soya toca o botão e confirma que a tela mudou; feira-fone tocar Pagar é RECUSADO porque o texto casa com a palavra de pagamento. Uma tarja vermelha no rodapé de todos os quadros avisa que a vitrine é local e não é um aplicativo de entrega.](docs/assets/rendered/demo-fone.gif)
 
 O ciclo inteiro, em cinco comandos:
 

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640"
      role="img" aria-labelledby="og-title og-desc">
   <title id="og-title">feira — o agente monta o carrinho, você paga</title>
-  <desc id="og-desc">Um agente lê o preço no aplicativo do mercado, compara por litro e monta o carrinho no seu celular. Ao chegar no botão de pagar, é recusado: quem paga é a pessoa, à mão.</desc>
+  <desc id="og-desc">Um agente experimental lê a tela do seu Android, compara por litro em vez da etiqueta e monta o carrinho. Ao chegar no botão de pagar, é recusado: quem paga é a pessoa, à mão.</desc>
 
   <!--
     GitHub social preview, 1280x640 (2:1).
@@ -38,6 +38,14 @@
   <text x="88" y="214" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
         font-size="36" font-weight="400" fill="#57606A">O agente monta o carrinho. Você paga.</text>
 
+  <!-- maturity, stated on the artwork because a social card travels alone -->
+  <g transform="translate(956, 104)">
+    <rect width="236" height="44" rx="22" fill="#FFFFFF" stroke="#CF222E" stroke-width="2"/>
+    <text x="118" y="30" text-anchor="middle"
+          font-family="DejaVu Sans, Inter, system-ui, sans-serif"
+          font-size="22" font-weight="700" fill="#CF222E">experimental</text>
+  </g>
+
   <g transform="translate(88, 248)">
     <rect width="1104" height="292" rx="10" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="2"/>
 
@@ -49,7 +57,7 @@
     </g>
     <g font-family="DejaVu Sans, Inter, system-ui, sans-serif" font-size="40"
        font-weight="600" fill="#1F2328">
-      <text x="112" y="72">lê o preço dentro do app do mercado</text>
+      <text x="112" y="72">lê a tela do seu Android e decide</text>
       <text x="112" y="138">compara por litro, não pela etiqueta</text>
       <text x="112" y="204">monta o carrinho no aparelho</text>
     </g>
@@ -66,5 +74,14 @@
     <text x="1060" y="282" text-anchor="end"
           font-family="DejaVu Sans, Inter, system-ui, sans-serif"
           font-size="44" font-weight="700" fill="#CF222E">RECUSADO</text>
+  </g>
+
+  <!--
+    The card is shared on its own and cannot carry a paragraph of context, so
+    the product's maturity is part of the artwork rather than something the
+    reader is trusted to look up. "experimental" is the honest name for the
+    phone layer's state, not a legal disclaimer.
+  -->
+  <g transform="translate(88, 248)">
   </g>
 </svg>
