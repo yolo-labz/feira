@@ -93,7 +93,7 @@ e a distinção decide quanto trabalho você vai ter.
 | **2. Ferramenta** | O `feira`: histórico, normalização, regra de migração | um computador | quem já cansou da planilha |
 | **3. Agente** | As *skills* — um assistente de IA que opera as camadas 1 e 2 | Claude Code ou similar | quem já usa um agente |
 | **4a. Captura / web** | A [extensão](extensao/): lê os preços da página que você já está vendo | um navegador | quem cansou de digitar preço |
-| **4b. Execução no app** | `feira-fone`: montar o pedido no aplicativo | **celular Android certificado, ligado à máquina** | quem tem um aparelho sobrando |
+| **4b. Carrinho no app** | `feira-fone`: montar o pedido no aplicativo — **você finaliza e paga** | **celular Android certificado, ligado à máquina** | quem tem um aparelho sobrando |
 
 **A camada 4 é opcional e a maior parte do valor não está nela.** Toda a
 economia vem de decidir certo — o que comprar, onde, e quando não mudar nada.
@@ -106,6 +106,28 @@ Celular físico ou nada; [o porquê, em detalhe](docs/pesquisa/harness-de-login.
 Se você não tem um celular sobrando, **não está perdendo nada de importante.**
 Comece pela camada 1, que funciona hoje, sem instalar coisa alguma. Detalhes em
 [docs/explicacao/camadas.md](docs/explicacao/camadas.md).
+
+## Conversar com ele
+
+O `feira` sozinho **não fala com nenhuma IA** — é um programa de linha de
+comando, sem chamada de rede e sem chave de API. Para perguntar em português
+*"onde o arroz tá mais barato?"*, ele expõe um **servidor MCP** (`feira-mcp`)
+que qualquer cliente de IA compatível pode usar:
+
+```
+  você  ⇄  cliente de IA  ⇄  feira-mcp  ⇄  seus arquivos
+          (a conversa,        (os dados,
+           o modelo,           as contas,
+           a conta a pagar)    as regras da casa)
+```
+
+Assim o projeto não exige **chave de API** de ninguém: um cliente de IA se paga
+com assinatura de consumidor comum. Passo a passo em
+[como conversar](docs/explicacao/como-conversar.md); o porquê da escolha em
+[a pesquisa](docs/pesquisa/harness-de-conversa.md).
+
+**O servidor MCP não faz pedido e não paga nada** — não existe ferramenta para
+isso, e um teste falha se alguém adicionar uma.
 
 ## Documentação
 
@@ -122,6 +144,7 @@ Ele é a parte que não depende de tecnologia, e é a parte que economiza dinhei
 
 Complementos:
 
+- [Como conversar](docs/explicacao/como-conversar.md) — MCP, skills, ou nenhum dos dois
 - [As quatro camadas](docs/explicacao/camadas.md) — o que cada nível exige
 - [Privacidade](docs/explicacao/privacidade.md) — o que nunca sai da sua máquina
 - [A extensão](extensao/README.md) — capturar preço sem digitar
@@ -134,9 +157,10 @@ Dito na abertura para você não descobrir depois:
 
 - **Não busca preço na internet.** Ele só sabe o que você registrou. Isso é uma
   limitação e é de propósito: preço anunciado não é preço pago.
-- **Não paga nada sozinho.** Nunca, nem na camada 4b com o celular na mão. No
-  `feira-fone` isso é **código**: tocar num botão com "pagar", "finalizar
-  pedido" ou equivalente é recusado sem `--eu-confirmo` naquela invocação. Ver
+- **Não paga nada.** Quem finaliza e paga é você, à mão, no aplicativo do
+  mercado. O servidor MCP não tem ferramenta de pagamento — **a capacidade não
+  existe** — e no `feira-fone` tocar num botão de pagamento é recusado **em
+  código** sem `--eu-confirmo` naquela invocação. Ver
   [o portão humano](docs/explicacao/camadas.md#o-portão-humano).
 - **Não recomenda nas primeiras semanas.** Precisa de três observações por
   mercado antes de opinar, e vai dizer isso em vez de chutar.
@@ -150,9 +174,10 @@ Dito na abertura para você não descobrir depois:
 sh tests/run.sh
 ```
 
-Quatro suítes, sem rede, sem celular, sem navegador: aritmética de unidade e
-regra de migração; portão de pagamento e resolução de elemento; parsing do
-coletor da extensão; e um repositório recém-criado respondendo aos comandos.
+Cinco suítes, sem rede, sem celular, sem navegador: aritmética de unidade e
+regra de migração; portão de pagamento e resolução de elemento; protocolo MCP e
+a ausência de qualquer ferramenta de pagamento; parsing do coletor da extensão;
+e um repositório recém-criado respondendo aos comandos.
 
 ## Estado
 

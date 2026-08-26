@@ -54,7 +54,11 @@ apologise for it and do not offer workarounds that route around the gate.
 
 ## The gate — non-negotiable
 
-Whatever the tier, **the software never completes a payment on its own.**
+**The person finalises and pays, by hand, in the merchant's own app.** That is
+the decision (25/08/2026), and it is the whole safety model. The software may
+build the cart; the last step belongs to a human.
+
+So: **the software never completes a payment on its own**, at any tier.
 
 Before any irreversible step — placing an order, confirming a cart, accepting a
 substitution on a restricted item, sending a message to a merchant — show the
@@ -71,6 +75,11 @@ This is not caution theatre. An unattended agent that orders the wrong thing
 once destroys more value in trust than the method generates in a year, and under
 Brazilian consumer law the household — not the software — owns the resulting
 dispute.
+
+Note how little is actually given up. Everything valuable happens *before* the
+button: deciding what to buy, where, and when to change nothing. Tapping
+"finalizar" is thirty seconds of human time, and it is the cheapest insurance
+the method has.
 
 ## Cards and credentials
 

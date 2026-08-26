@@ -43,9 +43,17 @@ doer.
 
 ## Camada 3 — o agente
 
-As *skills* — instruções que fazem um assistente de IA (Claude Code ou similar)
-operar as camadas 1 e 2 de acordo com a doutrina escrita no `AGENTS.md` da sua
-casa.
+Duas portas para o mesmo lugar, e elas convivem:
+
+- **O servidor MCP** (`feira-mcp`) — expõe os dados e as contas a **qualquer**
+  cliente de IA compatível. É o caminho recomendado, porque roda com assinatura
+  de consumidor em vez de chave de API. Ver [como conversar](como-conversar.md).
+- **As *skills*** — instruções mais ricas, que carregam o procedimento inteiro
+  (casar SKU de nota fiscal, montar lista respeitando a doutrina, quando parar e
+  perguntar). Funcionam em Claude Code.
+
+As skills descrevem **como raciocinar**; o MCP descreve **o que dá para
+chamar**. Nos dois casos a doutrina do `AGENTS.md` da sua casa é a autoridade.
 
 O que ele adiciona: ler a nota fiscal e casar os nomes de produto, montar a
 lista a partir da despensa, lembrar das regras da casa (alergia, marca vetada,
@@ -92,13 +100,23 @@ Setup, regras e armadilhas: [camada 4b](../../skills/feira-pedido/referencia/tie
 
 **Vale em todas as camadas, e não muda.**
 
-O software nunca completa um pagamento sozinho. Nem na camada 4b, nem com o
-celular na mão, nem quando o carrinho está obviamente certo.
+**Quem finaliza e paga a compra é você, à mão, no aplicativo do mercado**
+(decidido em 25/08/2026). O software monta o carrinho; o último passo é seu.
 
-No `feira-fone` isso é **código, não pedido**: tocar num botão cujo texto
-contenha "pagar", "finalizar pedido", "confirmar pagamento", "place order" e
-afins é recusado, e só passa com `--eu-confirmo` naquela invocação específica.
-Não existe modo "confirmar sempre".
+Isso é aplicado de dois jeitos diferentes, de propósito:
+
+- **No servidor MCP: por ausência.** Não existe ferramenta de pedido ou
+  pagamento. O servidor não alcança o celular, não conhece `adb`, não abre
+  aplicativo. Não há portão para um modelo pular, nem aprovação para forjar,
+  nem prompt injection que valha a pena escrever — **a capacidade não existe**.
+- **No `feira-fone`: por recusa em código.** Tocar num botão cujo texto contenha
+  "pagar", "finalizar pedido", "confirmar pagamento", "place order" e afins é
+  recusado, e só passa com `--eu-confirmo` naquela invocação específica. Não
+  existe modo "confirmar sempre".
+
+Segurança por ausência de capacidade é mais forte que segurança por
+confirmação, porque não depende de a confirmação estar certa. Onde dá para
+tirar a capacidade, ela foi tirada.
 
 Três razões, em ordem de peso:
 
@@ -115,7 +133,7 @@ Três razões, em ordem de peso:
 |---|---|
 | quer gastar menos sem instalar nada | 1 |
 | tem mais de 30 itens e 3 mercados | 2 |
-| já usa um assistente de IA no dia a dia | 3 |
+| quer conversar em português sobre os números | 3 (via [MCP](como-conversar.md)) |
 | quer capturar preço sem digitar | 4a (a extensão) |
 | tem um celular Android sobrando | 4b |
 

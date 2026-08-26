@@ -184,10 +184,10 @@ for part in bin template skills docs extensao; do
   run rm -rf "$PREFIX/$part"
   run cp -R "$SRC/$part" "$PREFIX/$part"
 done
-run chmod +x "$PREFIX/bin/feira" "$PREFIX/bin/feira-fone"
+run chmod +x "$PREFIX/bin/feira" "$PREFIX/bin/feira-fone" "$PREFIX/bin/feira-mcp"
 
 # Symlinks rather than copies, so the next install upgrades them automatically.
-for tool in feira feira-fone; do
+for tool in feira feira-fone feira-mcp; do
   if [ "$DRY_RUN" -eq 0 ]; then
     ln -sf "$PREFIX/bin/$tool" "$BINDIR/$tool"
   else
@@ -279,8 +279,9 @@ else
 fi
 
 say "  Guide (Portuguese):  $PREFIX/docs/02-o-metodo.md"
+say "  Talk to it (MCP):    $PREFIX/docs/explicacao/como-conversar.md"
 say "  Browser extension:   $PREFIX/extensao/  (load unpacked — see its README)"
-say "  Uninstall:           rm -rf $PREFIX $BINDIR/feira $BINDIR/feira-fone"
+say "  Uninstall:           rm -rf $PREFIX $BINDIR/feira $BINDIR/feira-fone $BINDIR/feira-mcp"
 say "  Your data is yours and lives only in the household directory."
 say ""
 

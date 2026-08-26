@@ -10,10 +10,11 @@ advogado, contador ou medição real.**
 | Documento | Pergunta | Decisão que saiu dali |
 |---|---|---|
 | [Harness de login](harness-de-login.md) | como o agente entra nas contas? | **extensão de navegador**; camada 4b exige celular físico; emulador é inviável |
+| [Harness de conversa](harness-de-conversa.md) | dá para incorporar um harness pequeno? | **não incorporar nenhum** — servidor MCP, para não exigir chave de API |
 | [Mercado e produto](mercado-e-produto.md) | dá para vender? para quem? | **caminho acadêmico primeiro**; SaaS hospedado é armadilha |
 | [Jurídico](juridico.md) | qual a exposição? | **local-first + sem custódia de credencial** elimina quase tudo |
 
-## As quatro conclusões que mudaram o projeto
+## As cinco conclusões que mudaram o projeto
 
 1. **A extensão resolve o login por não ter um.** O usuário já está logado; a
    extensão lê a página que ele está vendo. Sem senha, sem sessão sincronizada,
@@ -29,6 +30,10 @@ advogado, contador ou medição real.**
 4. **A esteira de manutenção é o centro de custo, não o código.** 20 a 60 horas
    por mercado por ano [estimado] só para acompanhar mudança de layout. É a
    razão principal para não vender serviço hoje.
+5. **A parede da chave de API decide a arquitetura da conversa.** Laço próprio
+   obriga conta de desenvolvedor e cartão internacional; cliente MCP roda com
+   assinatura de consumidor. Por isso o projeto expõe MCP e **não** embute
+   harness nenhum.
 
 ## O que a pesquisa disse que o projeto preferiu não ouvir
 
@@ -42,6 +47,20 @@ Registrado por honestidade:
 - **"Execução de pedido não é diferencial, é passivo."** Verdade, e mantida
   assim mesmo — com o portão de pagamento aplicado em código, e não como pedido
   educado na documentação.
+- **"Escreva o seu próprio laço de chat, é o que menos quebra o princípio de
+  zero dependência."** Boa defesa, recusada: o laço é pequeno no primeiro dia e
+  vira obrigação permanente de autenticação, retry e mudança de formato — e
+  empurra toda usuária para a chave de API.
+
+## Um desenho que ficou mais simples que a pesquisa propunha
+
+A pesquisa desenhou um "token de aprovação" para pagamento — o modelo propõe, o
+código exige confirmação fresca, a aprovação expira se o carrinho mudar.
+Cuidadoso, e desnecessário: **Pedro decidiu que quem paga é a pessoa, à mão, no
+aplicativo do mercado** (25/08/2026). Isso apaga prompt injection de nota
+fiscal, aprovação reusada e "o modelo foi convencido a pular o portão", porque
+**a capacidade não existe**. Segurança por ausência é mais forte que segurança
+por confirmação — não depende de a confirmação estar certa.
 
 ## O que ninguém verificou
 
@@ -50,5 +69,7 @@ Registrado por honestidade:
 - Nenhuma confirmação jurídica com profissional.
 - Nenhuma verificação de paridade de checkout web por mercado.
 - Nenhuma instalação por outra pessoa.
+- **Nenhum teste de quão amigável é configurar MCP para quem não programa** — o
+  ponto em que a metade conversacional passa ou reprova.
 
 Os cinco são pré-requisito para qualquer afirmação comercial.

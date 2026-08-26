@@ -20,6 +20,7 @@ run() {
 
 run "feira — units, numbers, migration rule" python3 bin/feira selftest
 run "feira-fone — payment gate, element matching" python3 tests/test_fone.py
+run "feira-mcp — protocol, failures, and no payment capability" python3 tests/test_mcp.py
 
 if command -v node >/dev/null 2>&1; then
   run "extension — page collector parsing" node tests/coletor.test.mjs
