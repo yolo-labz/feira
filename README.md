@@ -46,7 +46,8 @@ A pesquisa de preço acontece **nas suas próprias contas**: a
 [extensão](extensao/) lê a página que você abriu, e o
 [`feira-fone`](#o-ciclo-completo--o-celular) lê os aplicativos de entrega no seu
 celular. Nada disso é um servidor consultando um catálogo por aí — é o que a sua
-conta vê, no seu aparelho.
+conta vê, no seu aparelho: o `feira` não chama serviço externo nenhum; quem fala
+com a rede são o seu navegador e os apps do seu celular, na sua sessão.
 
 **O que ele nunca faz:** comprar, pagar, ou prometer uma porcentagem de
 economia.
@@ -117,9 +118,14 @@ coisa desde o primeiro minuto.
 
 ## O ciclo completo — o celular
 
-O destino do projeto é este, e vale dizer sem rodeio: **um agente que pesquisa
-preço dentro dos aplicativos de entrega, no seu celular, monta o carrinho, e
-para.** Você confere e finaliza a compra com o dedo, no app.
+O destino do projeto — e o que o `feira-fone` está construindo — é este: **um
+agente que pesquisa preço dentro dos aplicativos de entrega, no seu celular,
+monta o carrinho, e para.** Você confere e finaliza a compra com o dedo, no app.
+
+> **Estado real, hoje:** o `feira-fone` é **experimental**. Ele lê a tela, acha
+> elemento por texto e toca com verificação — e foi exercitado numa casa, num
+> aparelho. Não há release publicada, nem suporte declarado a uma lista de apps.
+> O parágrafo acima descreve para onde isto vai, não um botão que já existe.
 
 ```
   agente  →  celular  →  apps de entrega  →  preços → histórico
@@ -127,20 +133,27 @@ para.** Você confere e finaliza a compra com o dedo, no app.
               você finaliza  ←  carrinho montado  ←  decisão
 ```
 
-Por que o último passo é seu, e continua sendo: um agente que erra uma compra de
-R$ 30 apaga em confiança a economia de um mês, e quem discute com o mercado e com
-a operadora do cartão é você. **Não é limitação técnica — é onde a fronteira
-foi posta de propósito.** No `feira-fone` isso é código: tocar num botão de
-pagamento é recusado sem `--eu-confirmo` naquela invocação, e não existe modo
-"confirmar sempre". No servidor MCP a fronteira é mais forte ainda: a ferramenta
-de pagamento **não existe**.
+Por que o último passo é seu, e continua sendo: um agente que erra uma compra
+apaga em confiança o que muitas compras certas construíram, e quem discute com o
+mercado e com a operadora do cartão é você. **Não é limitação técnica — é onde
+a fronteira foi posta de propósito.** No `feira-fone` isso é código: tocar num
+botão de pagamento é recusado sem `--eu-confirmo` naquela invocação, e não existe
+modo "confirmar sempre". No servidor MCP a fronteira é mais forte ainda: a
+ferramenta de pagamento **não existe**.
 
-**Isto exige hardware:** um celular Android certificado, com depuração ligada,
-ligado à máquina. Emulador não resolve — aplicativos de entrega que guardam
-cartão usam o Play Integrity, que é verificação do lado do servidor contra
-hardware certificado, e AVD, Waydroid, redroid e BlueStacks falham exatamente no
-passo do pagamento. Aferido em 25/08/2026;
-[o levantamento](docs/pesquisa/harness-de-login.md).
+**Para usar a camada 4b você precisa de um Android físico**, homologado pelo
+Google Play, com depuração USB ligada e conectado à máquina. **Nos aplicativos e
+ambientes aferidos em 25/08/2026**, emuladores não concluíram o fluxo de
+pagamento — alguns apps exigem aparelho físico homologado através de verificações
+como o Play Integrity, cada app decide a própria política, e isso pode mudar.
+[O levantamento](docs/pesquisa/harness-de-login.md), com o que foi e o que não
+foi testado.
+
+> ⚠️ **Use só a sua própria conta, e leia os termos do aplicativo.** Automatizar
+> app de terceiro pode contrariar os termos de uso dele; a consequência realista
+> é a conta ser bloqueada, e a conta é sua. O suporte a cada plataforma pode
+> mudar sem aviso, e a automação pode ser barrada por ela. Ver o
+> [aviso legal](DISCLAIMER.md).
 
 Sem o aparelho, as camadas 1 a 3 funcionam sozinhas e já respondem *onde comprar*
 — o que falta é quem aperta os botões.
@@ -167,7 +180,7 @@ flowchart TD
     F["<b>2 · feira</b><br/>histórico, normalização por kg/L,<br/>regra de migração<br/><i>um computador</i>"]
     A["<b>3 · Agente</b><br/>feira-mcp — pergunta em português<br/><i>um cliente de IA</i>"]
     E["<b>4a · Extensão</b><br/>lê preço da página aberta<br/><i>um navegador</i>"]
-    P["<b>4b · feira-fone</b><br/>monta o carrinho no app<br/><i>celular Android certificado</i>"]
+    P["<b>4b · feira-fone</b><br/>monta o carrinho no app<br/><i>Android físico homologado</i>"]
     H(["<b>Você finaliza e paga</b><br/>à mão, no app do mercado"])
 
     M --> F

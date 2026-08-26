@@ -86,7 +86,7 @@ tem robô para detectar — porque não há robô, há você navegando. Ver
 
 ### 4b — pelo aplicativo, num celular conectado
 
-**Exige um aparelho Android físico, certificado, com bootloader travado,
+**Exige um aparelho Android físico, homologado pelo Google Play, com bootloader travado,
 conectado à máquina.** Não tem contorno por software: emulador, Waydroid,
 redroid, BlueStacks e afins falham no Play Integrity, especificamente no passo
 do pagamento.
