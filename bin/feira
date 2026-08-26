@@ -358,8 +358,10 @@ def purchase_events(rows: list[dict]) -> tuple[list[dict], int]:
             ev["mercados"].add(row["mercado"])
     eventos = [by_day[d] for d in sorted(by_day)]
     for ev in eventos:
-        bases = {b.strip().casefold() for b in ev["bases"] if b.strip()}
-        ev["base"] = bases.pop() if len(bases) == 1 else ""
+        # Compare case-insensitively, but keep the unit as written: the base is
+        # shown to the user, and litres are "L", not "l".
+        vistas = {b.strip() for b in ev["bases"] if b.strip()}
+        ev["base"] = vistas.pop() if len({v.casefold() for v in vistas}) == 1 else ""
     return eventos, descartadas
 
 
