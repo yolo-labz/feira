@@ -1,0 +1,16 @@
+feira
+Copyright 2026 Pedro Henrique Souza Balbino
+
+This product includes software developed by the feira project
+(https://github.com/yolo-labz/feira).
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+---
+
+Copyright is asserted here rather than inside LICENSE on purpose. The Apache-2.0
+text is kept byte-verbatim — including the `[yyyy] [name of copyright owner]`
+placeholder in its appendix, which is documentation of how to apply the licence
+and not a field to fill in. Editing that line is the most common reason GitHub's
+detector reports an Apache-2.0 file as "Other" / NOASSERTION, which is exactly
+what happened to this repository before 25/08/2026.

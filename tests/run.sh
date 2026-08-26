@@ -30,7 +30,10 @@ fi
 
 # The shipped template must be valid on its own terms, or a first-time user's
 # very first command fails.
-# shellcheck disable=SC2329  # invoked via `run` below
+# Invoked indirectly via `run` below, which shellcheck cannot see. Older
+# versions report that as SC2317, newer ones as SC2329 — disable both so the
+# lint result does not depend on which distro the runner ships.
+# shellcheck disable=SC2329,SC2317
 check_template() {
   # Absolute path captured BEFORE any cd — inside the subshells below, $PWD is
   # the temporary household directory, not this repository.
