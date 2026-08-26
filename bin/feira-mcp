@@ -168,6 +168,47 @@ def t_despensa(_args: dict) -> tuple[bool, str]:
     return True, "\n\n".join(parts)
 
 
+def t_historico(args: dict) -> tuple[bool, str]:
+    cmd = ["historico"]
+    if args.get("sku"):
+        cmd.append(str(args["sku"]))
+    if args.get("desde"):
+        cmd += ["--desde", str(args["desde"])]
+    if args.get("mercado"):
+        cmd += ["--mercado", str(args["mercado"])]
+    ok, out = run_feira(*cmd)
+    if not ok:
+        return False, out
+    return True, out + (
+        "\n\nEste é o ritmo de COMPRA, não o de consumo. Promoção, estoque e "
+        "viagem mexem nele — não o apresente como quanto a casa consome."
+    )
+
+
+def t_falta(_args: dict) -> tuple[bool, str]:
+    ok, out = run_feira("falta")
+    if not ok:
+        return False, out
+    return True, out + (
+        "\n\nCONFERIR quer dizer 'vá olhar no armário', nunca 'acabou'. Não "
+        "invente quantidade restante nem data de término: o programa não sabe "
+        "o que existe em casa, só o que foi comprado e quando."
+    )
+
+
+def t_mensagem(args: dict) -> tuple[bool, str]:
+    cmd = ["zap"]
+    if args.get("sku"):
+        cmd.append(str(args["sku"]))
+    ok, out = run_feira(*cmd)
+    if not ok:
+        return False, out
+    return True, out + (
+        "\n\nEste texto NÃO foi enviado, e este servidor não consegue enviá-lo. "
+        "Mostre a mensagem à pessoa e deixe que ela decida se manda, e para quem."
+    )
+
+
 def t_mercado(args: dict) -> tuple[bool, str]:
     slug = (args.get("mercado") or "").strip()
     if not slug:
@@ -269,6 +310,51 @@ TOOLS = [
         ),
         "inputSchema": {"type": "object", "properties": {}},
         "handler": t_despensa,
+    },
+    {
+        "name": "ver_historico",
+        "description": (
+            "O que a casa comprou, por data: gasto por mês e, se você passar um sku, a "
+            "linha do tempo daquele item com o intervalo entre as compras. Use para "
+            "'quanto gastamos em julho?', 'de quanto em quanto tempo compramos arroz?' "
+            "ou antes de opinar se algo está sendo comprado demais."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "sku": {"type": "string", "description": "item, ex. 'oleo-de-soja' (opcional)"},
+                "desde": {"type": "string", "description": "data inicial YYYY-MM-DD (opcional)"},
+                "mercado": {"type": "string", "description": "filtrar por mercado (opcional)"},
+            },
+        },
+        "handler": t_historico,
+    },
+    {
+        "name": "o_que_falta",
+        "description": (
+            "Que itens vale a pena conferir no armário, a partir do ritmo de compra e da "
+            "última contagem datada da despensa. Vereditos: REPOR (contado hoje, no ponto), "
+            "CONFERIR (vá olhar), MANTER (tem folga), COLETAR (dados insuficientes). "
+            "Use para 'o que falta em casa?'. NÃO afirma que algo acabou — ele lê compras, "
+            "não o armário; quem sabe o que tem em casa é a pessoa."
+        ),
+        "inputSchema": {"type": "object", "properties": {}},
+        "handler": t_falta,
+    },
+    {
+        "name": "escrever_mensagem",
+        "description": (
+            "Escreve o texto de uma mensagem de WhatsApp para o vendedor — o pedido do que "
+            "está faltando, ou uma pergunta de preço sobre um item. APENAS ESCREVE: este "
+            "servidor não envia mensagem nenhuma e não tem como enviar. Mostre o texto à "
+            "pessoa; se ela quiser mandar, o envio é feito fora daqui, pelo wa."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {"sku": {"type": "string",
+                                   "description": "perguntar sobre um item só (opcional)"}},
+        },
+        "handler": t_mensagem,
     },
     {
         "name": "ler_mercado",

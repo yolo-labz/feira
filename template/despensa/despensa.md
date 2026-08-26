@@ -10,11 +10,21 @@ duzentas abandonadas.
 Regra prática: atualize na hora de guardar a compra, não depois. É o único
 momento em que você já está com tudo na mão.
 
-| Item | Quantidade | Ponto de recompra | Validade | Nota |
-|---|---:|---:|---|---|
-| arroz-tio-joao-1kg | 3 | 2 | — | exemplo |
-| oleo-de-soja | 1 | 1 | — | exemplo — no ponto, entra na próxima lista |
-| papel-higienico-30m | 8 | 4 | — | exemplo |
+| Item | Quantidade | Ponto de recompra | Confirmado em | Validade | Nota |
+|---|---:|---:|---|---|---|
+| arroz-tio-joao-1kg | 10 | 2 | 2026-07-19 | — | exemplo — saco de 5 kg aberto, ainda com folga |
+| oleo-de-soja | 1 | 1 | 2026-07-19 | — | exemplo — já estava no ponto |
+| papel-higienico-30m | 8 | 4 | 2026-07-19 | — | exemplo |
+
+**Quantidade e ponto de recompra vão na unidade base do item** — `kg` para o
+arroz, `L` para o óleo, `un` para o papel. Um número solto (`3`) é lido nessa
+unidade; se preferir ser explícito, escreva `3 kg` e o `feira` entende igual.
+
+**`Confirmado em` é a coluna que faz o `feira falta` funcionar.** Sem ela o
+número é só um número: o programa não tem como saber se você contou hoje ou em
+março, então se recusa a opinar e devolve `COLETAR`. Com ela, ele mostra a
+idade da contagem junto do palpite — "contou 3 há 21 dias" — e você julga se
+ainda vale.
 
 **Ponto de recompra** é quanto pode sobrar antes de o item entrar na lista.
 Ele deve cobrir o prazo de entrega do mercado mais o tempo até a próxima

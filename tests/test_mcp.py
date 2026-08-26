@@ -77,8 +77,9 @@ with tempfile.TemporaryDirectory() as tmp:
 
     tools = by_id.get(2, {}).get("result", {}).get("tools", [])
     names = {t["name"] for t in tools}
-    check("every tool is exposed", len(tools), 8)
-    for required in ("aconselhar", "comparar_preco", "listar_itens", "ler_doutrina"):
+    check("every tool is exposed", len(tools), 11)
+    for required in ("aconselhar", "comparar_preco", "listar_itens", "ler_doutrina",
+                     "ver_historico", "o_que_falta", "escrever_mensagem"):
         if required not in names:
             falhas.append(f"tool missing from tools/list: {required}")
     for t in tools:
@@ -125,6 +126,17 @@ with tempfile.TemporaryDirectory() as tmp:
         if word in blob:
             falhas.append(f"SAFETY: the tool surface mentions {word!r} — the phone must not be reachable")
 
+    # Writing a message to a shop is allowed; sending it is not. The tool that
+    # drafts one has to say so in its own description, because that description
+    # is the only thing a model reads before deciding what it may do.
+    escrever = next((t for t in tools if t["name"] == "escrever_mensagem"), None)
+    if escrever is None:
+        falhas.append("SAFETY: escrever_mensagem is missing")
+    else:
+        desc = escrever["description"].casefold()
+        check("the drafting tool declares it cannot send",
+              ("não envia" in desc) and ("não tem como enviar" in desc), True)
+
     # The server source must not be able to reach the phone driver at all.
     # Tokenise and drop comments and string literals first: the docstrings here
     # discuss `feira-fone` at length on purpose, and a naive text search flags
@@ -147,4 +159,4 @@ if falhas:
     for f in falhas:
         print(f"  {f}")
     sys.exit(1)
-print("ok — MCP handshake, 8 tools, failures contained, and no tool can order or pay")
+print("ok — MCP handshake, 11 tools, failures contained, and no tool can order or pay")
