@@ -150,6 +150,19 @@ with tempfile.TemporaryDirectory() as tmp:
     check("a lumpy rhythm is admitted, not averaged",
           "irregular" in razoes.get("arroz-tio-joao-1kg", ""), True)
 
+    # A spreadsheet that rewrote every date is the realistic pt-BR disaster.
+    # The tool must say it could not read them, never just "0 compras".
+    csv_path = casa / "dados" / "observacoes.csv"
+    guardado = csv_path.read_text(encoding="utf-8")
+    linhas = guardado.splitlines()
+    quebrado = [linhas[0]] + [ln.replace(ln.split(",")[0], "31/31/2026", 1)
+                              for ln in linhas[1:] if ln.strip()]
+    csv_path.write_text("\n".join(quebrado) + "\n", encoding="utf-8")
+    ilegivel = feira(casa, "falta").stdout
+    check("unreadable dates are disclosed, not silently zero",
+          "não foram lidas" in ilegivel, True)
+    csv_path.write_text(guardado, encoding="utf-8")
+
     texto = feira(casa, "falta").stdout
     for proibido in ["acabou", "está sem", "vai acabar", "% de chance", "compre agora"]:
         check(f"never says {proibido!r}", proibido in texto.lower(), False)

@@ -324,8 +324,14 @@ IRREGULAR_LIMITE = 3.0       # and beyond this there is no rhythm to speak of
 QUANTIL_CONSERVADOR = 0.25   # which end of the observed rates the estimate leans on
 
 
-def purchase_events(rows: list[dict]) -> list[dict]:
+def purchase_events(rows: list[dict]) -> tuple[list[dict], int]:
     """Collapse observations of ONE sku into dated purchase events.
+
+    Returns the events AND how many rows could not be read. The count is a
+    return value rather than a field on some event because the case that
+    matters most is the one where NOTHING parsed: a spreadsheet that rewrote
+    every date leaves zero events, and a tool that then says "no purchases" to
+    somebody staring at a full CSV is telling the most confusing lie it can.
 
     Two rows on the same day are one trip that bought two packages, not two
     cycles a day apart. Quantities are summed in the item's base unit so a 5 kg
@@ -354,13 +360,7 @@ def purchase_events(rows: list[dict]) -> list[dict]:
     for ev in eventos:
         bases = {b.strip().casefold() for b in ev["bases"] if b.strip()}
         ev["base"] = bases.pop() if len(bases) == 1 else ""
-    if eventos:
-        # Rows that could not be read are reported, never swallowed. A dropped
-        # row lowers the count AND widens the gap around it, so silence here
-        # would make the tool claim 'not enough data' to somebody staring at a
-        # full spreadsheet — usually because a spreadsheet rewrote the dates.
-        eventos[0]["descartadas"] = descartadas
-    return eventos
+    return eventos, descartadas
 
 
 def cycle_rates(events: list[dict]) -> list[float]:
@@ -408,7 +408,7 @@ def _low_quantile(values: list[float], q: float = QUANTIL_CONSERVADOR) -> float:
 
 
 def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: float,
-                          hoje: dt.date | None = None) -> dict:
+                          hoje: dt.date | None = None, descartadas: int = 0) -> dict:
     """Decide whether an item is worth walking to the cupboard for.
 
     The conservative choice is deliberate and load-bearing: the test uses the
@@ -423,9 +423,15 @@ def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: floa
       MANTER   — everything else
     """
     hoje = hoje or dt.date.today()
-    perdidas = events[0].get("descartadas", 0) if events else 0
+    perdidas = descartadas
     sobra = (f" — e {perdidas} linha(s) do CSV não foram lidas: confira data e "
              f"quantidade") if perdidas else ""
+
+    def resposta(acao: str, razao: str, **extra) -> dict:
+        # Every answer carries the disclosure, not just the ones that refuse:
+        # a trusted verdict computed over a silently shortened history is worse
+        # than a refusal, because nobody goes looking.
+        return {**extra, "acao": acao, "razao": razao + sobra, "descartadas": perdidas}
 
     # A rhythm from two years ago is not this year's rhythm, and one ancient gap
     # would otherwise anchor the estimate for good.
@@ -434,14 +440,22 @@ def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: floa
 
     n = len(recentes)
     if n < MIN_EVENTOS:
-        return {"acao": "coletar",
-                "razao": f"{n} compra(s) nos últimos {JANELA_REPOSICAO_DIAS} dias, "
-                         f"{max(n - 1, 0)} ciclo(s) — são precisas {MIN_EVENTOS} "
-                         f"para estimar reposição{sobra}"}
+        # "Colete mais" is a promise the window cannot keep for an item bought
+        # three times a year: it can never reach the floor inside a rolling 365
+        # days, so telling that user to keep collecting would string them along
+        # forever. Say instead that the item is bought too rarely to estimate.
+        if len(events) >= MIN_EVENTOS:
+            return resposta("coletar",
+                            f"comprado raramente demais para estimar — {n} compra(s) no "
+                            f"último ano, {len(events)} no histórico todo")
+        return resposta("coletar",
+                        f"{n} compra(s) nos últimos {JANELA_REPOSICAO_DIAS} dias, "
+                        f"{max(n - 1, 0)} ciclo(s) — são precisas {MIN_EVENTOS} "
+                        f"para estimar reposição")
 
     rates = cycle_rates(recentes)
     if not rates:
-        return {"acao": "coletar", "razao": "todas as compras caem no mesmo dia — não há ciclo"}
+        return resposta("coletar", "todas as compras caem no mesmo dia — não há ciclo")
 
     lento, rapido = min(rates), max(rates)
     dispersao = rapido / lento if lento > 0 else math.inf
@@ -454,7 +468,6 @@ def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: floa
         "taxa_rapida": rapido,
         "irregular": bool(dispersao > IRREGULAR_NOTA),
         "ultima_compra": recentes[-1]["data"].isoformat(),
-        "descartadas": perdidas,
     }
 
     # Past a certain lumpiness there is no rhythm to speak of, and any number
@@ -462,20 +475,22 @@ def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: floa
     # Printing "(histórico irregular)" beside a confident verdict, as an earlier
     # draft of this did, is having it both ways.
     if dispersao > IRREGULAR_LIMITE:
-        return {**info, "acao": "coletar",
-                "razao": f"ritmo irregular demais para estimar — o mais rápido observado "
-                         f"foi {dispersao:.1f}× o mais lento{sobra}"}
+        return resposta("coletar",
+                        f"ritmo irregular demais para estimar — o mais rápido observado "
+                        f"foi {dispersao:.1f}× o mais lento", **info)
 
     if not despensa or despensa.get("quantidade") is None or not despensa.get("confirmado_em"):
-        return {**info, "acao": "coletar",
-                "razao": f"sem contagem datada na despensa — anote quanto tem e quando contou{sobra}"}
+        return resposta("coletar",
+                        "sem contagem datada na despensa — anote quanto tem e quando contou",
+                        **info)
 
     unidade = (despensa.get("unidade") or "").strip().casefold()
     bases = {(e.get("base") or "").strip().casefold() for e in recentes}
     if not unidade or bases != {unidade}:
-        return {**info, "acao": "coletar",
-                "razao": f"a contagem está em '{unidade or '?'}' e as compras em "
-                         f"'{'/'.join(sorted(b or '?' for b in bases))}' — não dá para comparar"}
+        return resposta("coletar",
+                        f"a contagem está em '{unidade or '?'}' e as compras em "
+                        f"'{'/'.join(sorted(b or '?' for b in bases))}' — não dá para comparar",
+                        **info)
 
     contado = despensa["quantidade"]
     idade = (hoje - despensa["confirmado_em"]).days
@@ -484,13 +499,12 @@ def replenishment_verdict(events: list[dict], despensa: dict | None, ponto: floa
                  "idade_dias": idade, "folga": restante, "ponto": ponto})
 
     if 0 <= idade <= 1 and contado <= ponto:
-        return {**info, "acao": "repor",
-                "razao": f"contagem de hoje: {contado:g} — no ponto de recompra"}
+        return resposta("repor", f"contagem de hoje: {contado:g} — no ponto de recompra", **info)
     if restante <= ponto:
-        return {**info, "acao": "conferir",
-                "razao": f"contou {contado:g} há {idade} dia(s); num ritmo lento para esta "
-                         f"casa isso já alcança o ponto de recompra"}
-    return {**info, "acao": "manter", "razao": f"contagem de {idade} dia(s) atrás ainda tem folga"}
+        return resposta("conferir",
+                        f"contou {contado:g} há {idade} dia(s); num ritmo lento para esta "
+                        f"casa isso já alcança o ponto de recompra", **info)
+    return resposta("manter", f"contagem de {idade} dia(s) atrás ainda tem folga", **info)
 
 
 def summarise(observations: list[dict], janela_dias: int) -> dict[str, dict]:
@@ -860,7 +874,7 @@ def cmd_historico(args) -> int:
             m["mercados"].add(row["mercado"])
 
     if args.sku:
-        events = purchase_events(kept)
+        events, perdidas_hist = purchase_events(kept)
         rates = cycle_rates(events)
         detalhe = {
             "sku": args.sku,
@@ -868,8 +882,9 @@ def cmd_historico(args) -> int:
                          "base": e["base"], "gasto": e["gasto"],
                          "mercados": sorted(e["mercados"])} for e in events],
             "ciclos": len(rates),
-            "taxa_lenta": min(rates) if rates else None,
+            "taxa_conservadora": _low_quantile(rates) if rates else None,
             "taxa_mediana": _median(rates) if rates else None,
+            "descartadas": perdidas_hist,
         }
     else:
         detalhe = None
@@ -908,8 +923,12 @@ def cmd_historico(args) -> int:
                   f"{brl(e['gasto']):>10}  {', '.join(e['mercados'])}")
         if detalhe["ciclos"]:
             print(f"\n    reposição observada: mediana {detalhe['taxa_mediana']:.3f} "
-                  f"{events[-1]['base']}/dia, mais lenta {detalhe['taxa_lenta']:.3f}")
+                  f"{events[-1]['base'] or '?'}/dia, ritmo lento "
+                  f"{detalhe['taxa_conservadora']:.3f}")
             print("    (ritmo de COMPRA, não de consumo — promoção e estoque mexem nisso)")
+        if perdidas_hist:
+            print(f"\n    {perdidas_hist} linha(s) do CSV não foram lidas — confira data "
+                  f"e quantidade")
     print()
     return 0
 
@@ -933,7 +952,8 @@ def cmd_falta(args) -> int:
             ponto = d["ponto_de_recompra"]
         else:
             ponto = _num(str(casa.read_item(sku).get("ponto_de_recompra", "") or 0))
-        v = replenishment_verdict(purchase_events(by_sku[sku]), d, ponto)
+        eventos, perdidas = purchase_events(by_sku[sku])
+        v = replenishment_verdict(eventos, d, ponto, descartadas=perdidas)
         v["sku"] = sku
         grupos[v["acao"]].append(v)
 
@@ -999,7 +1019,8 @@ def cmd_zap(args) -> int:
         for sku in sorted(by_sku):
             d = despensa.get(sku)
             ponto = d["ponto_de_recompra"] if d else 0.0
-            v = replenishment_verdict(purchase_events(by_sku[sku]), d, ponto)
+            eventos, perdidas = purchase_events(by_sku[sku])
+            v = replenishment_verdict(eventos, d, ponto, descartadas=perdidas)
             if v["acao"] in {"repor", "conferir"}:
                 nome = casa.read_item(sku).get("item") or sku
                 pedir.append(nome)
@@ -1207,7 +1228,7 @@ def cmd_selftest(args) -> int:
     eq("mixed pack sizes, one steady rate", max(misto) - min(misto) < 1e-9, True)
 
     # Same-day rows are one trip, not a zero-day cycle.
-    duas = purchase_events([
+    duas, _ = purchase_events([
         {"data": "2026-01-01", "mercado": "a", "_conteudo": 1.0, "_base": "kg", "_preco": 5.0},
         {"data": "2026-01-01", "mercado": "a", "_conteudo": 1.0, "_base": "kg", "_preco": 5.0},
     ])
@@ -1262,14 +1283,30 @@ def cmd_selftest(args) -> int:
     # Brazilian dates from a spreadsheet must not vanish. Silently dropping them
     # would make the tool answer 'not enough data' to somebody looking at a full
     # CSV, which is the most confusing lie it could tell.
-    br = purchase_events([{"data": "14/06/2026", "mercado": "a", "_conteudo": 1.0,
-                           "_base": "kg", "_preco": 5.0}])
+    br, _ = purchase_events([{"data": "14/06/2026", "mercado": "a", "_conteudo": 1.0,
+                              "_base": "kg", "_preco": 5.0}])
     eq("DD/MM/YYYY is read, not dropped", len(br), 1)
-    ruim = purchase_events([{"data": "nao-e-data", "mercado": "a", "_conteudo": 1.0,
-                             "_base": "kg", "_preco": 5.0},
-                            {"data": "2026-06-14", "mercado": "a", "_conteudo": 1.0,
-                             "_base": "kg", "_preco": 5.0}])
-    eq("unreadable rows are counted, not swallowed", ruim[0]["descartadas"], 1)
+    _, perdeu = purchase_events([{"data": "nao-e-data", "mercado": "a", "_conteudo": 1.0,
+                                  "_base": "kg", "_preco": 5.0},
+                                 {"data": "2026-06-14", "mercado": "a", "_conteudo": 1.0,
+                                  "_base": "kg", "_preco": 5.0}])
+    eq("unreadable rows are counted, not swallowed", perdeu, 1)
+
+    # The case that reproduced the original bug: a spreadsheet rewrote EVERY
+    # date, so nothing parses. Saying "0 compras" and stopping would be the
+    # confusing lie again; the count has to survive an empty event list.
+    vazio, todas = purchase_events([{"data": "31/31/2026", "mercado": "a", "_conteudo": 1.0,
+                                     "_base": "kg", "_preco": 5.0}] * 9)
+    eq("nothing parsed still reports the loss", (len(vazio), todas), (0, 9))
+    nada = replenishment_verdict(vazio, None, 1.0, dt.date(2026, 6, 1), descartadas=todas)
+    eq("and says so in the verdict", "9 linha(s)" in nada["razao"], True)
+
+    # An item bought quarterly can never reach the floor inside a rolling year.
+    # Telling that household to keep collecting would string them along forever.
+    raro = [ev(i * 90, 1) for i in range(8)]
+    tarde = dt.date(2026, 1, 1) + dt.timedelta(days=8 * 90)
+    eq("rarely bought is refused honestly, not with 'collect more'",
+       "raramente demais" in replenishment_verdict(raro, None, 1.0, tarde)["razao"], True)
 
     eq("control characters never reach the terminal",
        "\x1b" in _ansi_c_quote("a\x1b[31mb"), False)
