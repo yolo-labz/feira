@@ -10,18 +10,25 @@
 
 # feira
 
-**Compara o preço que a sua casa realmente pagou, normalizado por quilo, litro ou
-unidade — e só recomenda trocar de mercado quando a diferença compensa a troca.**
+**Compara o preço que a sua casa pagou por mercado — normalizado por quilo, litro
+ou unidade — e só recomenda trocar de mercado quando a diferença compensa a
+troca.**
 
-Funciona com uma planilha e um caderno. O software é opcional.
+Um exemplo, dos dados que acompanham o projeto: óleo de **900 ml a R$ 7,49** sai
+a **R$ 8,32 por litro**; o de **1 litro a R$ 7,90** sai a **R$ 7,90 por litro**.
+O da etiqueta menor é 5% mais caro. Comparar etiqueta com etiqueta escolhe
+errado, e nada no recibo avisa.
+
+O [**método**](docs/02-o-metodo.md) funciona numa planilha, sem instalar nada — é
+a camada que economiza dinheiro. O software só automatiza a conta.
 
 > **Não faz compra e não paga nada.** Quem finaliza e paga é você, à mão, no
-> aplicativo do mercado. Os seus dados ficam na sua máquina: o `feira` não faz
-> nenhuma chamada de rede.
+> aplicativo do mercado. E o `feira` instalado **não faz nenhuma chamada de
+> rede**: os seus dados ficam na sua máquina.
 
 <a href="docs/02-o-metodo.md"><b>Começar sem instalar nada →</b></a> &nbsp;·&nbsp;
 <a href="#instalação">Instalar</a> &nbsp;·&nbsp;
-<a href="#conversar-com-ele">Conversar com ele</a>
+<a href="#a-demo">Ver funcionando</a>
 
 ---
 
@@ -31,12 +38,13 @@ Você registra o que pagou — digitando, ou importando a nota fiscal eletrônic
 (NFC-e) que o mercado já emite. O `feira` divide cada preço pelo conteúdo da
 embalagem e responde **uma** pergunta: *vale a pena mudar alguma coisa?*
 
-Na maior parte das semanas a resposta é **não**, e ele diz isso. Uma ferramenta
-que manda trocar de mercado toda semana faz você gastar mais perseguindo
-promoções.
+Na maior parte das semanas a resposta é **não**, e ele diz isso. Trocar de
+mercado custa frete, pedido mínimo e tempo — por isso existe um limiar, e por
+isso o veredito mais comum é *não mude nada*.
 
-**O que ele nunca faz:** buscar preço na internet, comprar, pagar, ou prometer
-uma porcentagem de economia.
+**O que ele nunca faz:** consultar preço na internet por conta própria, comprar,
+pagar, ou prometer uma porcentagem de economia. (A [extensão](extensao/) lê
+preços — mas só da página que **você** abriu, quando **você** clica.)
 
 ## A demo
 
@@ -44,10 +52,8 @@ uma porcentagem de economia.
 
 Duas coisas acontecem aí, e as duas importam:
 
-1. **A ordem inverteu.** Na etiqueta o óleo de 900 ml custa R$ 7,49 e o de 1 litro
-   custa R$ 7,90. Por litro, o de 900 ml é 5% mais caro. Comparar etiqueta com
-   etiqueta, sem dividir pelo conteúdo, leva à escolha errada — e nada no recibo
-   avisa.
+1. **A ordem inverteu** — o caso do óleo lá de cima, agora com as três amostras
+   de cada mercado e a mediana.
 2. **Mesmo assim, ele manda ficar onde está.** A política padrão não recomenda
    trocar abaixo de 8% de diferença, com pelo menos 3 observações no mercado
    desafiante. [Por que esses números](skills/feira-precos/referencia/regra-de-migracao.md).
@@ -55,13 +61,15 @@ Duas coisas acontecem aí, e as duas importam:
 Essa segunda parte é o produto. A primeira é aritmética.
 
 > Os números da demo saem dos dados de exemplo em `template/` — rode
-> `feira compare oleo-de-soja` e você vê exatamente a mesma coisa. Versão em
-> texto: [`demo.cast`](docs/assets/source/demo.cast).
+> `feira compare oleo-de-soja` e você vê exatamente a mesma coisa. Quadro
+> estático: [`demo.png`](docs/assets/rendered/demo.png). Gravação original em
+> asciicast: [`demo.cast`](docs/assets/source/demo.cast).
 
 ## Instalação
 
-Python 3.9+ e nada mais. Sem `pip install`, sem ambiente virtual, sem dependência
-de runtime.
+O CLI precisa de Python 3.9+ e nada mais — sem `pip install`, sem ambiente
+virtual, sem dependência de runtime. (A extensão de navegador é separada e
+opcional; veja o [README dela](extensao/README.md).)
 
 **Ler antes de executar** — é o caminho recomendado, e o script foi escrito para
 isso:
@@ -81,10 +89,15 @@ curl -fsSL https://raw.githubusercontent.com/yolo-labz/feira/main/install.sh | s
 
 O instalador se recusa a rodar como root, instala só dentro do seu `$HOME`, não
 edita nenhum arquivo de shell seu, imprime o SHA-256 do que baixou e roda um
-autoteste no fim. Dá pra fixar uma versão com `--version <tag>` e conferir o
-download com `FEIRA_SHA256=<hash>`. Ainda **não há release publicada** — hoje o
-padrão é o `main`, que é conteúdo mutável; se isso te incomoda, use `--dry-run` e
-leia o script.
+autoteste no fim.
+
+Ainda **não há release publicada** — o padrão é o `main`, que é conteúdo
+mutável. Enquanto isso, dá pra fixar exatamente o que você leu:
+
+```sh
+sh install.sh --version <sha-do-commit-que-você-leu>
+FEIRA_SHA256=<hash-que-você-esperava> sh install.sh   # aborta se não bater
+```
 
 Primeiro resultado, em menos de um minuto:
 
@@ -104,7 +117,7 @@ coisa desde o primeiro minuto.
 | De onde vem o preço | anunciado pela loja | **o que você pagou**, da sua nota fiscal |
 | O que ele sabe da sua casa | nada | o que vocês consomem e a que preço |
 | A quem ele serve | à loja que paga o anúncio | à sua casa |
-| A resposta típica | "compre aqui" | "**não mude nada esta semana**" |
+| A resposta honesta, na maioria das semanas | "compre aqui" | "**não mude nada**" |
 | Onde ficam os dados | no servidor dele | na sua máquina, em texto puro |
 
 ## As quatro camadas
@@ -156,8 +169,9 @@ O `feira` sozinho não fala com nenhuma IA. Ele expõe um **servidor MCP**
 (`feira-mcp`) que clientes compatíveis com o protocolo podem consultar — o
 cliente cuida da conversa, do modelo e da conta; o `feira` cuida dos dados.
 
-Assim o **`feira` não pede chave de API a ninguém**. (O cliente de IA que você
-escolher pode pedir a dele — a maioria roda com assinatura de consumidor.)
+Assim o **`feira` não pede chave de API a ninguém** — e o servidor fala só pela
+entrada e saída padrão, com o cliente na sua máquina, sem abrir porta de rede.
+(O cliente de IA que você escolher pode pedir a chave dele.)
 
 **O servidor MCP não tem ferramenta de pedido nem de pagamento.** Não é uma
 confirmação que dá pra convencer o modelo a pular: a capacidade não existe, e
@@ -220,15 +234,20 @@ automatizar qualquer coisa que gaste dinheiro.
 
 ### In English
 
-**feira** compares what your household *actually paid* for groceries — parsed
-from Brazilian NFC-e electronic receipts — normalised to price per kg/L/unit, and
-only recommends switching shops when the gap clears a threshold (8% by default)
-with enough samples (3). Most weeks it says *stay put*, which is the point.
+**feira** compares what your household paid for groceries — entered by hand or
+parsed from Brazilian NFC-e electronic receipts — normalised to price per
+kg/L/unit, and only recommends switching shops when the gap clears a threshold
+(8% by default) with enough samples (3). Most weeks it says *stay put*, which is
+the point.
 
-Plain-text data, stdlib Python, zero runtime dependencies, no network calls, no
-API key. It ships an MCP server with **no ordering or payment tool at all** — a
-test enforces that absence. Ordering can be assisted on a physical Android phone,
-but a human always taps pay.
+Plain-text data, stdlib Python, zero runtime dependencies, no API key. The
+installed tool makes **no network calls**. It ships an MCP server over stdio with
+**no ordering or payment tool at all** — a test enforces that absence. Ordering
+can be assisted on a physical Android phone, but a human always taps pay.
+
+**Maturity:** 0.1.0, **no release published**, and **no savings have been
+measured against a controlled baseline** — the project deliberately promises no
+percentage. There is no known external installation yet.
 
 Docs are Portuguese-first because the domain is Brazilian retail. The
 [method](docs/02-o-metodo.md) works on a spreadsheet with no software at all.

@@ -80,7 +80,8 @@ Cada linha é uma coisa que a gente pode dizer em público, e onde alguém confe
 
 ### Frases proibidas
 
-Estas já foram testadas e reprovadas numa revisão adversarial (25/08/2026):
+Estas foram testadas e reprovadas em duas revisões adversariais (25 e
+26/08/2026), ambas de família de modelo diferente de quem escreveu a cópia.
 
 - ❌ "Comprar mercado abaixo do preço que você pagaria sozinho" — promete
   resultado financeiro causal
@@ -94,6 +95,31 @@ Estas já foram testadas e reprovadas numa revisão adversarial (25/08/2026):
   pode exigir
 - ❌ "nunca foi instalado por outra pessoa" — indemonstrável. Diga: "não há
   instalação externa conhecida"
+
+Da segunda revisão (26/08/2026) — estas são mais sutis, e todas passaram pela
+primeira sem serem pegas:
+
+- ❌ **"uma ferramenta que manda trocar de mercado toda semana faz você gastar
+  mais"** — causalidade afirmada sobre a categoria inteira, sem medição. É a
+  assimetria que mais machuca este projeto: recusar prometer economia própria e
+  ao mesmo tempo afirmar prejuízo alheio. Diga o custo da troca (frete, pedido
+  mínimo, tempo) como **razão de desenho**, não como lei de mercado.
+- ❌ **"o preço que a sua casa realmente pagou"** — a entrada também é digitada, e
+  digitação erra. Diga "o preço que a sua casa pagou, conforme você registra".
+- ❌ **"não faz nenhuma chamada de rede"** sem escopo — o instalador baixa, a
+  extensão lê página. Diga "o `feira` **instalado** não faz chamada de rede".
+- ❌ **"nunca busca preço na internet"** sem escopo — contradiz a extensão. Diga
+  "não consulta preço na internet por conta própria; a extensão lê só a página
+  que você abriu, quando você clica".
+- ❌ **"funciona com uma planilha e um caderno"** dito do repositório — isso é
+  verdade do **método**. Atribua e linke, senão é uma promessa que o repo não
+  demonstra.
+- ❌ **"a maioria dos clientes de IA roda com assinatura de consumidor"** —
+  afirmação sem fonte sobre um mercado que muda rápido, e que apodrece sozinha.
+- ⚠️ **O resumo em inglês tem que carregar as mesmas ressalvas do português.**
+  Na primeira versão ele omitia "sem release" e "economia não medida" — o leitor
+  estrangeiro recebia a versão cor-de-rosa, que é exatamente o vazamento que este
+  documento existe pra impedir.
 
 ## Inventário de peças
 
