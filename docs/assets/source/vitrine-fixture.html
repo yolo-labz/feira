@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercado Exemplo</title>
+<!--
+  Vitrine de MENTIRA, para gravar a demonstração do feira-fone.
+
+  Existe porque a demo precisa mostrar o agente lendo preço e montando
+  carrinho num aplicativo de verdade, num aparelho de verdade — sem abrir a
+  conta de ninguém, sem endereço, sem histórico de pedido e sem tocar nos
+  termos de uso de um mercado real.
+
+  Os produtos são os mesmos do template/ do projeto: o óleo de 900 ml que
+  parece mais barato na etiqueta e é mais caro no litro.
+
+  Cada botão carrega um aria-label próprio porque o feira-fone resolve
+  elemento por texto visível OU content-desc, e "Adicionar" sozinho aparece
+  quatro vezes — o que faz o programa recusar e pedir precisão, de propósito.
+-->
+<style>
+  :root {
+    --tinta: #1F2328; --verde: #1A7F37; --cinza: #57606A;
+    --borda: #D0D7DE; --fundo: #FFFFFF; --sutil: #F6F8FA;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--sutil); color: var(--tinta);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding-bottom: 88px;
+  }
+  header {
+    background: var(--fundo); border-bottom: 1px solid var(--borda);
+    padding: 14px 16px; position: sticky; top: 0;
+  }
+  header h1 { margin: 0; font-size: 18px; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; font-size: 13px; color: var(--cinza); }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li {
+    background: var(--fundo); border-bottom: 1px solid var(--borda);
+    padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  }
+  .info { flex: 1; min-width: 0; }
+  .nome { font-weight: 600; font-size: 15px; }
+  .emb { font-size: 13px; color: var(--cinza); margin-top: 1px; }
+  .preco { font-size: 17px; font-weight: 700; margin-top: 4px; }
+  button {
+    font: inherit; font-weight: 600; font-size: 14px; cursor: pointer;
+    border-radius: 6px; padding: 9px 14px; white-space: nowrap;
+    border: 1px solid var(--verde); background: var(--fundo); color: var(--verde);
+  }
+  button:active { background: var(--verde); color: #fff; }
+  #barra {
+    position: fixed; left: 0; right: 0; bottom: 0; background: var(--fundo);
+    border-top: 1px solid var(--borda); padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  #resumo { flex: 1; font-size: 13px; color: var(--cinza); }
+  #resumo b { display: block; font-size: 16px; color: var(--tinta); font-weight: 700; }
+  #pagar {
+    background: var(--verde); color: #fff; border-color: var(--verde);
+    padding: 11px 20px; font-size: 15px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mercado Exemplo</h1>
+  <p>Vitrine de demonstração &middot; dados de exemplo</p>
+</header>
+
+<ul id="lista"></ul>
+
+<div id="barra">
+  <div id="resumo">carrinho<b id="total">R$ 0,00</b></div>
+  <button id="pagar" aria-label="Pagar pedido">Pagar</button>
+</div>
+
+<script>
+  // Os mesmos itens de template/itens/ — inclusive o par de óleo em que a
+  // etiqueta mais barata perde no preço por litro.
+  const PRODUTOS = [
+    { nome: "Óleo de soja Liza", emb: "900 ml", preco: 7.49, id: "liza" },
+    { nome: "Óleo de soja Soya", emb: "1 L",    preco: 7.90, id: "soya" },
+    { nome: "Arroz Tio João",    emb: "1 kg",   preco: 6.99, id: "arroz1" },
+    { nome: "Arroz Tio João",    emb: "5 kg",   preco: 27.45, id: "arroz5" },
+  ];
+
+  const brl = (v) => "R$ " + v.toFixed(2).replace(".", ",");
+  let total = 0;
+
+  document.getElementById("lista").innerHTML = PRODUTOS.map((p) => `
+    <li>
+      <div class="info">
+        <div class="nome">${p.nome}</div>
+        <div class="emb">${p.emb}</div>
+        <div class="preco">${brl(p.preco)}</div>
+      </div>
+      <button data-preco="${p.preco}"
+              aria-label="Adicionar ${p.nome.replace("Óleo de soja ", "").replace("Tio João", "Tio João ")} ${p.emb}">
+        Adicionar
+      </button>
+    </li>`).join("");
+
+  document.querySelectorAll("#lista button").forEach((b) => {
+    b.addEventListener("click", () => {
+      total += parseFloat(b.dataset.preco);
+      document.getElementById("total").textContent = brl(total);
+      b.textContent = "No carrinho";
+      b.setAttribute("aria-label", b.getAttribute("aria-label").replace("Adicionar", "No carrinho"));
+    });
+  });
+
+  // O botão existe para ser recusado. Se o feira-fone algum dia chegar aqui
+  // sem --eu-confirmo, a demonstração falhou e o teste também.
+  document.getElementById("pagar").addEventListener("click", () => {
+    document.getElementById("resumo").innerHTML =
+      "<b>Isto nunca deveria acontecer</b>o feira-fone recusa este botão";
+  });
+</script>
+</body>
+</html>

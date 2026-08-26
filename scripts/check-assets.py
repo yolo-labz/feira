@@ -65,6 +65,8 @@ BUDGETS = {
     "social-preview.png": {"size": (1280, 640), "max_kb": 1024},
     "demo.gif":           {"max_kb": 900},
     "demo.png":           {"max_kb": 300},
+    "demo-fone.gif":      {"max_kb": 900},
+    "demo-fone.png":      {"max_kb": 300},
 }
 
 
