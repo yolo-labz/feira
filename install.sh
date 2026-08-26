@@ -45,7 +45,10 @@ note() { printf '%s    %s%s\n' "$D" "$*" "$R"; }
 die()  { printf '%s\n' "feira: $*" >&2; exit "${2:-1}"; }
 run()  { if [ "$DRY_RUN" -eq 1 ]; then note "would: $*"; else "$@"; fi; }
 
-# shellcheck disable=SC2329  # invoked by the trap below
+# Invoked by the trap below, which shellcheck cannot see. Older versions report
+# that as SC2317, newer ones as SC2329 — disable both so the lint result does
+# not depend on which shellcheck the runner ships.
+# shellcheck disable=SC2329,SC2317
 cleanup() {
   if [ -n "$TMP" ] && [ -d "$TMP" ]; then rm -rf "$TMP"; fi
   return 0   # never let cleanup rewrite the script's exit status
