@@ -1,11 +1,14 @@
 # As quatro camadas
 
-Este projeto é frequentemente lido como "uma IA que faz sua compra". Não é. É
-quatro coisas empilhadas, e você pode parar em qualquer uma delas.
+O destino do projeto é **um agente que pesquisa preço dentro dos aplicativos de
+entrega, no seu celular, monta o carrinho, e para para você finalizar** — a
+camada 4b.
 
-A distinção importa porque decide quanto trabalho você vai ter e que hardware
-precisa. **A maior parte do valor está nas duas primeiras, que não exigem nada
-além de você.**
+Mas ele é quatro coisas empilhadas, e você pode parar em qualquer uma. Isso
+importa por dois motivos: as duas primeiras camadas já economizam dinheiro
+sozinhas e não exigem nada além de você, e a última exige hardware que nem toda
+casa tem. Quem para na camada 2 tem uma ferramenta útil; quem chega na 4b tem o
+ciclo fechado.
 
 | Camada | O que é | Exige | Valor |
 |---|---|---|---|
@@ -83,7 +86,7 @@ tem robô para detectar — porque não há robô, há você navegando. Ver
 
 ### 4b — pelo aplicativo, num celular conectado
 
-**Exige um aparelho Android físico, certificado, com bootloader travado,
+**Exige um aparelho Android físico, homologado pelo Google Play, com bootloader travado,
 conectado à máquina.** Não tem contorno por software: emulador, Waydroid,
 redroid, BlueStacks e afins falham no Play Integrity, especificamente no passo
 do pagamento.
@@ -137,5 +140,8 @@ Três razões, em ordem de peso:
 | quer capturar preço sem digitar | 4a (a extensão) |
 | tem um celular Android sobrando | 4b |
 
-**Não tem celular sobrando? Você não está perdendo nada de importante.** Falta o
-último passo do recurso que representa a menor parte do valor.
+**Não tem celular sobrando?** Você fica sem o ciclo fechado — que é o ponto de
+chegada do projeto —, mas não sem a economia. As camadas 1 a 3 respondem *o que
+comprar e onde*, que é onde a decisão acontece; o que falta é quem aperta os
+botões no aplicativo. Muita gente vai preferir apertar sozinha, e isso é uma
+escolha legítima, não um consolo.
