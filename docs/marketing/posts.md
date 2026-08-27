@@ -11,43 +11,50 @@ exagerar, o texto de lançamento é onde isso costuma vazar.
 
 ## 1. Post em português — público geral
 
-> Todo mercado no Brasil emite nota fiscal eletrônica da sua compra. Quase
-> ninguém olha a própria.
+> Escrevi um agente que faz a minha compra de mercado. Ele pesquisa preço nos
+> aplicativos, pelo celular, monta o carrinho — e para no botão de pagar.
 >
-> Ela tem o preço que você **pagou de verdade** — depois da promoção, depois do
-> desconto do clube, depois de o produto ter vindo num tamanho diferente do que
-> estava na gôndola. Comparador de preços não tem isso. Ele tem o preço
-> anunciado, na loja que paga o anúncio.
+> Parar ali não é limitação técnica. É onde eu pus a fronteira: quem discute com
+> o mercado e com a operadora do cartão sou eu, não o programa. No servidor de
+> IA que acompanha o projeto a ferramenta de pagar **não existe** — não é um
+> "confirma?" que dá pra convencer o modelo a pular.
 >
-> Passei três meses juntando as minhas e transformando num método. Duas
-> descobertas chatas e lucrativas:
+> Mas a parte que economiza dinheiro não precisa de celular nenhum, e é chata:
 >
 > **1. Comparar etiqueta com etiqueta escolhe errado.** Óleo de 900 ml a
 > R$ 7,49 parece mais barato que o de 1 litro a R$ 7,90. Por litro, é 5% mais
-> caro. A embalagem de 900 ml existe porque quase todo mundo compara etiquetas.
+> caro. Enquanto você compara etiquetas, o tamanho da embalagem decide por você.
 >
 > **2. Trocar de mercado quase nunca compensa.** Frete, pedido mínimo e a sua
 > tarde custam mais que 5% de diferença. A regra que uso: só mudar acima de 8%,
 > e com pelo menos 3 observações, senão você está reagindo a uma promoção de um
-> dia.
+> dia. O veredito mais comum é *não mude nada*.
 >
-> Publiquei o método e a ferramenta. **O método funciona numa planilha, sem
-> instalar nada** — é a parte que economiza dinheiro. O programa só automatiza a
+> Os preços saem da nota fiscal eletrônica que o mercado já emite pra você — o
+> que você **pagou**, não o que estava anunciado.
+>
+> **O método roda numa planilha, sem instalar nada.** O programa só automatiza a
 > conta.
 >
-> Não prometo porcentagem de economia: não medi contra uma linha de base
-> controlada, e quem promete número sem isso está chutando.
+> Duas ressalvas, porque prometer demais aqui seria fácil: a parte do celular é
+> experimental — uma casa, um aparelho — e eu **não** medi economia contra uma
+> linha de base controlada. Quem promete porcentagem sem isso está chutando.
 >
 > github.com/yolo-labz/feira
 
-**Peça:** `social-preview.png`. **Canal:** LinkedIn, Instagram, grupo de família.
+**Peça:** `demo-fone.gif` (use o `-dark` em fundo escuro).
+**Canal:** LinkedIn, Instagram, grupo de família.
+**Legenda obrigatória do GIF:** ver [a regra](README.md#inventário-de-peças) —
+a vitrine é de demonstração, não é um aplicativo de entrega.
 
 ---
 
 ## 2. Post técnico — OSS
 
-> **feira** — comparador de preço de mercado que parte da nota fiscal
-> eletrônica brasileira (NFC-e), não do preço anunciado.
+> **feira** — um agente que lê preço de mercado na tela de um Android físico,
+> decide comparando por quilo/litro, monta o carrinho e **para no pagamento**.
+> Os preços históricos saem da nota fiscal eletrônica brasileira (NFC-e): o que
+> a casa pagou, não o que estava anunciado.
 >
 > - Python de biblioteca padrão. Zero dependência de runtime, zero chamada de
 >   rede. Os dados são CSV e Markdown que abrem em qualquer editor.
@@ -74,42 +81,52 @@ exagerar, o texto de lançamento é onde isso costuma vazar.
 >
 > github.com/yolo-labz/feira
 
-**Peça:** `demo.gif`. **Canal:** Hacker News (Show HN), Lobsters, Mastodon.
+**Peça:** `demo-fone.gif`. **Canal:** Hacker News (Show HN), Lobsters, Mastodon.
 
-> **Nota para Show HN:** o título deve ser factual — *"Show HN: feira – grocery
-> price tool that starts from your own receipts, not advertised prices"*. Sem
-> "revolutionary", sem "AI-powered". A primeira resposta honesta a "does it save
-> money?" é: *não medido contra linha de base controlada.*
+> **Nota para Show HN:** o título deve ser factual — *"Show HN: feira – an agent
+> that prices groceries on your own Android and stops at payment"*. Sem
+> "revolutionary", sem "AI-powered". Três respostas que já têm que estar prontas
+> antes de postar, porque virão nos primeiros dez comentários:
+>
+> - *"does it save money?"* → não medido contra linha de base controlada;
+> - *"does it work with iFood/Rappi?"* → não. Nenhum app de entrega real foi
+>   automatizado, a demo roda contra uma vitrine local, e não há lista de apps
+>   suportados;
+> - *"is this against their ToS?"* → automatizar app de terceiro pode contrariar
+>   os termos dele; a conta é sua e o risco realista é bloqueio. Está no
+>   DISCLAIMER.
 
 ---
 
-## 3. Enquadramento acadêmico — professora, pesquisa, extensão
+## 3. Enquadramento acadêmico — professora, pesquisa
 
-> O material tem três documentos, em ordem de leitura:
+> O material tem dois documentos, nessa ordem:
 >
 > 1. **O caso** — o que é, com os números de uma compra real e o que ainda não
 >    está provado.
 > 2. **O método** — o procedimento em si. Roda numa planilha, sem software
 >    nenhum: linha de base, normalização por unidade, regra de decisão, ponto de
 >    recompra, e a nota fiscal como fonte de verdade.
-> 3. **Apêndice técnico** — para quem for instalar.
 >
 > O segundo é o que interessa fora da computação. Ele descreve um problema de
 > operações doméstico — decisão sob incerteza com custo de troca, informação
 > assimétrica na embalagem, e coordenação entre duas pessoas — que dá para
 > ensinar e para testar sem nenhuma tecnologia.
 >
-> O que o material **não** tem: economia medida contra linha de base
-> controlada. Um piloto de quatro semanas com quatro casas resolveria isso, e o
-> desenho está no repositório.
->
-> Possíveis encaixes: caso de ensino, módulo de disciplina em operações ou
-> sistemas de informação, projeto de extensão sobre orçamento doméstico e
-> desperdício, ou base pública de preços a partir de NFC-e — esta última com a
-> ressalva de que uma casa não é amostra.
+> O que o material **não** tem: economia medida contra linha de base controlada.
+> Um piloto de quatro semanas com quatro casas resolveria isso, e o desenho está
+> no repositório.
 
-**Peça:** nenhuma, ou `demo.png` estático. **Canal:** e-mail (o rascunho vive
-fora deste repositório, no vault pessoal).
+**Peça:** nenhuma, ou `demo-fone.png` estático. **Canal:** e-mail (o rascunho
+vive fora deste repositório, no vault pessoal).
+
+> **Não peça encaixe.** A versão anterior deste texto terminava oferecendo
+> "caso de ensino, extensão, PIBIC". Saiu por correção do Pedro em 26/08: quem
+> pediu o material pediu uma dica, e a resposta entrega a dica e para. Se der em
+> alguma coisa, a proposta parte de quem está do outro lado — e proposta que
+> parte de lá vale mais que uma que a gente foi buscar. Um apêndice técnico
+> também não vai: para quem não é da computação, ele só transforma um documento
+> útil numa escada de três degraus.
 
 ---
 
@@ -120,11 +137,13 @@ só se o resultado couber no orçamento de peso sem virar binário gigante no gi
 
 | t | Tela | Legenda (queimada, sem áudio) |
 |---|---|---|
-| 0–3 s | `social-preview.png` estático | *O preço que você pagou, por quilo.* |
-| 3–8 s | terminal: `feira compare oleo-de-soja` digitando | *900 ml parece mais barato.* |
-| 8–12 s | a tabela aparece, R$ 8,32/L vs R$ 7,90/L | *Não é.* |
-| 12–16 s | o veredito `MANTER` em destaque | *E mesmo assim: não troque por 5%.* |
-| 16–20 s | `github.com/yolo-labz/feira` | *O método funciona numa planilha.* |
+| 0–4 s | o celular na mão, `feira-fone tela` lendo a vitrine | *Ele lê o preço na tela.* |
+| 4–9 s | `feira compare`: R$ 8,32/L contra R$ 7,90/L | *900 ml parece mais barato. Não é.* |
+| 9–13 s | o veredito `MANTER` em destaque | *E mesmo assim: não troque por 5%.* |
+| 13–17 s | `feira-fone tocar 'Pagar'` → **RECUSADO** | *Pagar é com você.* |
+| 17–20 s | `github.com/yolo-labz/feira` | *O método funciona numa planilha.* |
+
+A tarja da vitrine tem que estar em todos os quadros, como já está no GIF.
 
 Regras: sem música com pancada, sem corte rápido, sem contador de estrelas. A
 fonte do vídeo tem que ser regenerável — se virar um MP4 que ninguém sabe
