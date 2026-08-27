@@ -105,7 +105,18 @@ Estas foram testadas e reprovadas em duas revisões adversariais (25 e
   aplicativo de entrega real foi automatizado, e o software não compra em
   lugar nenhum. Diga: "monta o carrinho; quem finaliza é você"
 - ❌ Publicar o GIF do celular sem dizer que a vitrine é de exemplo — a imagem
-  sozinha faz o espectador concluir que o app é real
+  sozinha faz o espectador concluir que o app é real. (Desde 26/08 a tarja está
+  queimada nos quadros, mas a legenda continua obrigatória em texto)
+- ❌ **"comparador de preços"** como autodescrição — o README tem uma seção
+  inteira explicando por que não é isso, e o texto de lançamento não pode dizer
+  o contrário da página que ele linka. Diga o que ele faz: lê preço, decide por
+  quilo/litro, monta o carrinho, para no pagamento
+- ❌ **Pedir encaixe** — "caso de ensino?", "extensão?", "PIBIC?". Quem pediu o
+  material pediu uma dica; entregue a dica e pare. Proposta que parte do outro
+  lado vale mais que uma que a gente foi buscar (correção do Pedro, 26/08)
+- ❌ Mandar um **apêndice técnico** para quem não é da computação — transforma um
+  documento útil numa escada de três degraus
+- ❌ Usar o GIF de tema claro sobre fundo escuro. Existe `-dark` de cada um
 - ❌ "nunca foi instalado por outra pessoa" — indemonstrável. Diga: "não há
   instalação externa conhecida"
 
@@ -136,17 +147,25 @@ primeira sem serem pegas:
 
 ## Inventário de peças
 
-| Peça | Arquivo | Onde usar | Corte |
+| Peça | Arquivo | Onde usar | Fatos |
 |---|---|---|---|
-| Preview social | `docs/assets/rendered/social-preview.png` | ajuste do repositório no GitHub; unfurl de link | 1280×640 (2:1); recorte central em X/Slack |
-| Herói do README | mesma imagem, a 640 px | topo do README | — |
-| Demo do celular | `docs/assets/rendered/demo-fone.gif` | herói do README; qualquer peça sobre o produto | 921×628, ~281 KB |
-| Demo do celular, estática | `docs/assets/rendered/demo-fone.png` | onde GIF não roda; e-mail | 921×628 |
-| Demo do CLI | `docs/assets/rendered/demo.gif` | post técnico; seção do CLI | 921×628, ~78 KB |
-| Demo do CLI, estática | `docs/assets/rendered/demo.png` | onde GIF não roda | 921×628 |
-| Demo em texto | `docs/assets/source/demo-fone.cast`, `demo.cast` | leitor de tela; quem prefere texto | — |
-| Marca | `docs/assets/source/logo.svg` | avatar da organização, favicon | quadrado, legível a 16 px |
+| **Demo do celular** | `rendered/demo-fone.gif` · `demo-fone-dark.gif` | **herói do README**; qualquer peça sobre o produto | 921×684, 249 / 262 KB |
+| Demo do celular, estática | `rendered/demo-fone.png` | onde GIF não roda; e-mail | 921×684, 25 KB |
+| Preview social | `rendered/social-preview.png` | **só o unfurl de link** e o ajuste do repositório | 1280×640 (2:1), 71 KB; recorte central em X/Slack |
+| Demo do CLI | `rendered/demo.gif` · `demo-dark.gif` | post técnico; seção do CLI | 921×628, 78 KB |
+| Demo do CLI, estática | `rendered/demo.png` | onde GIF não roda | 921×628, 46 KB |
+| Demo em texto | `source/demo-fone.cast`, `demo.cast` | leitor de tela; quem prefere texto | — |
+| Marca | `source/logo.svg` | avatar da organização, favicon | quadrado, legível a 16 px |
 | Diagrama | bloco Mermaid no README | README; slide | renderizado pelo GitHub |
+
+**O cartão social não é o herói do README** — foi até 26/08 e deixou de ser. Em
+modo escuro ele é um bloco branco, e o conteúdo dele era uma lista de bullets
+desenhada como imagem: não seleciona, não traduz, não reflui, não é lida por
+leitor de tela. O topo do README é a gravação; o cartão serve o *unfurl*, onde
+é a única peça possível.
+
+**Todo GIF tem par claro e escuro.** Ao republicar num lugar com fundo escuro,
+use o `-dark`. No README quem escolhe é o `<picture media="(prefers-color-scheme: dark)">`.
 
 Texto alternativo de cada uma: em [`MANIFEST.md`](../assets/MANIFEST.md) e nas
 tags `alt` do próprio README. Não republique uma peça sem o texto alternativo
