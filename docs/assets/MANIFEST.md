@@ -31,10 +31,12 @@ legível no `git diff`.
 
 | Arquivo | Dimensões | Peso | Orçamento | Como refazer |
 |---|---|---:|---:|---|
-| `social-preview.png` | 1280×640 | ~68 KB | ≤ 1024 KB (teto do GitHub) | `make assets` |
+| `social-preview.png` | 1280×640 | ~71 KB | ≤ 1024 KB (teto do GitHub) | `make assets` |
 | `demo.gif` | 921×628, 45 quadros | ~78 KB | ≤ 900 KB | `make demo` |
+| `demo-dark.gif` | 921×628, 45 quadros | ~78 KB | ≤ 900 KB | `make assets` (mesmo cast, tema escuro) |
 | `demo.png` | 921×628 | ~45 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
 | `demo-fone.gif` | 921×684, 70 quadros | ~249 KB | ≤ 900 KB | `make demo-fone` (exige celular) |
+| `demo-fone-dark.gif` | 921×684, 70 quadros | ~262 KB | ≤ 900 KB | `make assets` (mesmo cast, tema escuro) |
 | `demo-fone.png` | 921×684 | ~25 KB | ≤ 300 KB | `make assets` (último quadro do GIF) |
 
 Os orçamentos são verificados por `scripts/check-assets.py`, que **quebra o CI**
@@ -43,9 +45,8 @@ ele precisa carregar no celular, em dado móvel.
 
 ## Dados usados nas peças
 
-O preview social e a demo mostram **os dados de exemplo que acompanham o
-`template/`** — o óleo de 900 ml contra o de 1 litro, do
-`template/dados/observacoes.csv`.
+As demos mostram **os dados de exemplo que acompanham o `template/`** — o óleo
+de 900 ml contra o de 1 litro, do `template/dados/observacoes.csv`.
 
 Isso é regra, não coincidência:
 
@@ -53,7 +54,11 @@ Isso é regra, não coincidência:
   Nota fiscal tem CPF e a lista completa do que uma família consome.
 - Como as peças usam a fixture, elas **não podem divergir** do que a ferramenta
   realmente imprime: `feira compare oleo-de-soja` produz exatamente os números
-  do cartão.
+  que aparecem na gravação.
+
+O cartão social não traz número nenhum, de propósito. Ele é lido a ~600 px numa
+prévia de link, onde uma tabela de preços vira textura; ele carrega uma frase
+só, e quem quiser o número clica.
 
 A demo é gravada num diretório temporário que é apagado no fim, sem nome de
 usuário, sem hostname e sem caminho da máquina que gravou.
@@ -88,6 +93,18 @@ junto. Ela é aplicada pelo `make`, não à mão.
 Para refazer: sirva `docs/assets/source/` em HTTP, abra a vitrine no aparelho e
 rode `make demo-fone`. As pré-condições estão no cabeçalho do `demo-fone.sh`, e
 o roteiro **falha em vez de gravar** se a recusa de pagamento não acontecer.
+
+## Modo claro e modo escuro
+
+Metade de quem abre o README lê numa tela quase preta, e um GIF de tema claro é
+um bloco branco ali. Cada gravação de terminal é renderizada **duas vezes a
+partir do mesmo `.cast`** — `github-light` e `github-dark` — e o README escolhe
+com `<picture media="(prefers-color-scheme: dark)">`, que é o mecanismo do
+próprio GitHub, não uma segunda cópia do markdown.
+
+O cartão social não tem par escuro de propósito: ele só é usado no *unfurl* de
+link, e nenhuma rede social consulta `prefers-color-scheme` — cada uma compõe a
+imagem sobre o próprio fundo.
 
 ## Acessibilidade
 

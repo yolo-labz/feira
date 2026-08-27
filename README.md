@@ -1,9 +1,4 @@
 <p align="center">
-  <img src="docs/assets/rendered/social-preview.png" width="640"
-       alt="feira — o agente monta o carrinho, você paga. Um cartão lista três coisas que o agente faz, marcadas com visto verde: lê o preço dentro do app do mercado, compara por litro e não pela etiqueta, e monta o carrinho no aparelho. Abaixo, marcada com um xis vermelho, a ação que ele recusa: pagar — RECUSADO.">
-</p>
-
-<p align="center">
   <a href="https://github.com/yolo-labz/feira/actions/workflows/ci.yml"><img src="https://github.com/yolo-labz/feira/actions/workflows/ci.yml/badge.svg" alt="Estado do CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licença-Apache--2.0-1A7F37" alt="Licença Apache-2.0"></a>
 </p>
@@ -14,6 +9,14 @@
 aplicativos de entrega, no seu celular, monta o carrinho — e para. Você confere
 e finaliza a compra com o dedo, no app.**
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/rendered/demo-fone-dark.gif">
+  <img src="docs/assets/rendered/demo-fone.gif" alt="Terminal: feira-fone dispositivos mostra um moto g06 conectado; feira-fone tela lê a vitrine e imprime os preços — óleo Liza 900 ml a R$ 7,49 e óleo Soya 1 L a R$ 7,90; feira compare oleo-de-soja mostra que o de 900 ml sai a R$ 8,32 por litro e o de 1 L a R$ 7,90, com veredito MANTER porque a diferença de 5,1% fica abaixo do limite de 8%; feira-fone tocar Adicionar Soya toca o botão e confirma que a tela mudou; feira-fone tocar Pagar é RECUSADO porque o texto casa com a palavra de pagamento. Uma tarja vermelha no rodapé de todos os quadros avisa que a vitrine é local e não é um aplicativo de entrega.">
+</picture>
+
+Gravação de verdade: aparelho de verdade, tela lida de verdade, pagamento
+recusado de verdade no fim. [O que é encenado e o que não é](#a-demo).
+
 Ele não para porque não conseguiu ir adiante. Para porque essa é a fronteira, e
 ela é código: tocar num botão de pagamento é recusado, e no servidor MCP a
 ferramenta de pagar **não existe**.
@@ -23,7 +26,7 @@ esperar um botão:
 
 | | |
 |---|---|
-| ✅ hoje | num Android físico, o `feira-fone` lê a tela, decide, monta o carrinho e recusa o pagamento — foi assim que a demo abaixo foi gravada, contra uma **vitrine de demonstração** |
+| ✅ hoje | num Android físico, o `feira-fone` lê a tela, decide, monta o carrinho e recusa o pagamento — foi assim que o vídeo acima foi gravado, contra uma **vitrine de demonstração** |
 | ⏳ ainda não | fazer isso **dentro de um aplicativo de entrega real**. Nenhum foi automatizado, e não há lista de apps suportados |
 
 O `feira-fone` é **experimental**: uma casa, um aparelho, sem release. As camadas
@@ -43,10 +46,8 @@ de baixo — o método e o CLI — são **estáveis**.
 
 ## A demo
 
-Uma gravação de verdade: um celular Android de verdade, lendo a tela de verdade,
-e recusando o pagamento de verdade no fim.
-
-![Terminal: feira-fone dispositivos mostra um moto g06 conectado; feira-fone tela lê a vitrine e imprime os preços — óleo Liza 900 ml a R$ 7,49 e óleo Soya 1 L a R$ 7,90; feira compare oleo-de-soja mostra que o de 900 ml sai a R$ 8,32 por litro e o de 1 L a R$ 7,90, com veredito MANTER porque a diferença de 5,1% fica abaixo do limite de 8%; feira-fone tocar Adicionar Soya toca o botão e confirma que a tela mudou; feira-fone tocar Pagar é RECUSADO porque o texto casa com a palavra de pagamento. Uma tarja vermelha no rodapé de todos os quadros avisa que a vitrine é local e não é um aplicativo de entrega.](docs/assets/rendered/demo-fone.gif)
+[Volte ao vídeo lá em cima](#feira) — aqui está o que ele mostra, em texto, para
+quem prefere ler ou usa leitor de tela.
 
 O ciclo inteiro, em cinco comandos:
 
@@ -119,7 +120,10 @@ software só automatiza a conta.
 
 ## O CLI, sem celular nenhum
 
-![Terminal: feira init cria um repositório de exemplo; feira compare oleo-de-soja mostra atacarejo-online a R$ 7,90 por litro contra mercado-do-bairro a R$ 8,32, com o veredito MANTER porque a diferença de 5,1% está abaixo do limite de 8%; feira advise lista MIGRAR para o arroz, COLETAR para o papel higiênico e MANTER para o resto.](docs/assets/rendered/demo.gif)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/rendered/demo-dark.gif">
+  <img src="docs/assets/rendered/demo.gif" alt="Terminal: feira init cria um repositório de exemplo; feira compare oleo-de-soja mostra atacarejo-online a R$ 7,90 por litro contra mercado-do-bairro a R$ 8,32, com o veredito MANTER porque a diferença de 5,1% está abaixo do limite de 8%; feira advise lista MIGRAR para o arroz, COLETAR para o papel higiênico e MANTER para o resto.">
+</picture>
 
 Duas coisas acontecem aí, e as duas importam:
 

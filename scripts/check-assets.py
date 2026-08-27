@@ -64,8 +64,10 @@ for svg in svgs:
 BUDGETS = {
     "social-preview.png": {"size": (1280, 640), "max_kb": 1024},
     "demo.gif":           {"max_kb": 900},
+    "demo-dark.gif":      {"max_kb": 900},
     "demo.png":           {"max_kb": 300},
     "demo-fone.gif":      {"max_kb": 900},
+    "demo-fone-dark.gif": {"max_kb": 900},
     "demo-fone.png":      {"max_kb": 300},
 }
 
@@ -171,14 +173,34 @@ else:
             fail(f"docs/assets/source/{path.name} is not described in MANIFEST.md")
 
 
-# --- 6. README images carry alt text --------------------------------------
+# --- 6. README images carry alt text, and every srcset resolves ------------
 
-for alt, src in re.findall(r"!\[([^\]]*)\]\(([^)]+)\)", readme):
+# Both syntaxes, because the README uses <picture> for the light/dark pairs and
+# this check silently validated nothing the day the markdown images went away.
+images = re.findall(r"!\[([^\]]*)\]\(([^)]+)\)", readme)
+images += [(alt, src) for src, alt in re.findall(
+    r"<img[^>]*?src=\"([^\"]+)\"[^>]*?alt=\"([^\"]*)\"", readme, re.S)]
+images += [(alt, src) for alt, src in re.findall(
+    r"<img[^>]*?alt=\"([^\"]*)\"[^>]*?src=\"([^\"]+)\"", readme, re.S)]
+
+for alt, src in images:
     if not alt.strip():
         fail(f"README.md: image {src} has empty alt text; if it is decorative, "
              f"say so explicitly in MANIFEST.md")
-    elif len(alt.strip()) < 15:
+    # A badge's alt is a label; a screenshot's alt has to stand in for the
+    # picture. Only hold the local rendered assets to the descriptive bar.
+    elif "assets/rendered" in src and len(alt.strip()) < 15:
         fail(f"README.md: alt text for {src} is too short to describe it — {alt!r}")
+
+for tag in re.findall(r"<picture>.*?</picture>", readme, re.S):
+    if "<img" not in tag:
+        fail("README.md: a <picture> has no <img> fallback, so it has no alt text")
+
+# A dark-mode srcset that points at nothing fails only for readers in dark mode,
+# which is exactly the audience least likely to be the one reviewing the diff.
+for srcset in re.findall(r'<source[^>]*?srcset="([^"]+)"', readme):
+    if not (ROOT / srcset).exists():
+        fail(f"README.md: <source srcset=\"{srcset}\"> points at a file that does not exist")
 
 
 # ---------------------------------------------------------------------------
