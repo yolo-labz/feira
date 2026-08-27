@@ -1,29 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640"
      role="img" aria-labelledby="og-title og-desc">
-  <title id="og-title">feira — o agente monta o carrinho, você paga</title>
-  <desc id="og-desc">Um agente experimental lê a tela do seu Android, compara por litro em vez da etiqueta e monta o carrinho. Ao chegar no botão de pagar, é recusado: quem paga é a pessoa, à mão.</desc>
+  <title id="og-title">feira — lê o preço na tela do seu celular e monta o carrinho. Pagar é com você.</title>
+  <desc id="og-desc">Cartão do projeto feira, marcado como experimental: um agente lê o preço na tela do seu celular e monta o carrinho, e o pagamento continua sendo seu. No rodapé, três fatos: Android físico, dados em texto na sua máquina, e nenhuma ferramenta de pagamento no servidor MCP.</desc>
 
   <!--
-    GitHub social preview, 1280x640 (2:1).
+    GitHub social preview, 1280x640 (2:1). This is now the card's ONLY job — the
+    README leads with the demo recording instead, so nothing here has to survive
+    being embedded on a dark canvas.
 
-    Design constraints this file is built around, from docs/pesquisa and DESIGN.md:
-      - Every crop (X ~1.91:1, Slack thumbnail, Discord) centre-crops, so nothing
-        load-bearing goes near the edges. Content sits inside x 88..1192, y 72..568.
-      - Under ~12 words of prose. The steps do the arguing.
-      - Text is converted to paths at render time (make assets), so it does not
-        depend on a font being installed anywhere.
-      - Colour never carries meaning alone: the three steps carry a tick AND are
-        green; the refusal carries a cross AND the word RECUSADO.
-      - The last line is the product. It is the largest thing on the card on
-        purpose — at thumbnail size it is the one word that must survive.
+    Design constraints, from DESIGN.md and docs/pesquisa:
+      - Every crop (X ~1.91:1, Slack, Discord) centre-crops, so nothing
+        load-bearing goes near the edges: content sits inside x 88..1192, y 72..568.
+      - ONE idea, in type big enough to survive a 600px-wide unfurl. The previous
+        version was a four-line checklist; at thumbnail size a list reads as
+        texture, not as a sentence. The three supporting facts are deliberately
+        small — they reward a click, they do not compete for the first read.
+      - The stop is the product, so it is the only coloured line.
+      - Text is converted to paths at render time (make assets), so the card does
+        not depend on a font being installed anywhere.
+      - Maturity is drawn on the artwork: a social card travels alone and cannot
+        carry a caveat in prose.
   -->
 
   <rect width="1280" height="640" fill="#FFFFFF"/>
+  <rect x="0" y="0" width="1280" height="10" fill="#1A7F37"/>
 
-  <!-- wordmark row -->
-  <g transform="translate(88, 70)">
-    <!-- the tag mark, same geometry as logo.svg, scaled 32 -> 68 -->
-    <g transform="scale(2.125)" fill="#1F2328">
+  <!-- wordmark -->
+  <g transform="translate(88, 92)">
+    <g transform="scale(1.5)" fill="#1F2328">
       <path fill-rule="evenodd" d="
         M 12 4 H 26 A 3 3 0 0 1 29 7 V 25 A 3 3 0 0 1 26 28 H 12
         L 2.9 17.8 A 2.7 2.7 0 0 1 2.9 14.2 Z
@@ -31,57 +35,30 @@
         M 18.866 22.832 L 25.866 11.332 L 23.134 9.668 L 16.134 21.168 Z
       "/>
     </g>
-    <text x="98" y="53" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="76" font-weight="700" fill="#1F2328" letter-spacing="-1.5">feira</text>
+    <text x="70" y="38" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
+          font-size="54" font-weight="700" fill="#1F2328" letter-spacing="-1">feira</text>
   </g>
 
-  <text x="88" y="214" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-        font-size="36" font-weight="400" fill="#57606A">O agente monta o carrinho. Você paga.</text>
-
-  <!-- maturity, stated on the artwork because a social card travels alone -->
-  <g transform="translate(956, 104)">
-    <rect width="236" height="44" rx="22" fill="#FFFFFF" stroke="#CF222E" stroke-width="2"/>
-    <text x="118" y="30" text-anchor="middle"
+  <!-- maturity, on the artwork because the card travels alone -->
+  <g transform="translate(960, 96)">
+    <rect width="224" height="42" rx="21" fill="#FFFFFF" stroke="#CF222E" stroke-width="2"/>
+    <text x="112" y="29" text-anchor="middle"
           font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="22" font-weight="700" fill="#CF222E">experimental</text>
+          font-size="21" font-weight="700" fill="#CF222E">experimental</text>
   </g>
 
-  <g transform="translate(88, 248)">
-    <rect width="1104" height="292" rx="10" fill="#F6F8FA" stroke="#D0D7DE" stroke-width="2"/>
-
-    <!-- the three things it does, ticked -->
-    <g fill="#1A7F37">
-      <path d="M 44 50 l 11 12 l 22 -26 l 9 8 l -31 36 l -20 -21 Z"/>
-      <path d="M 44 116 l 11 12 l 22 -26 l 9 8 l -31 36 l -20 -21 Z"/>
-      <path d="M 44 182 l 11 12 l 22 -26 l 9 8 l -31 36 l -20 -21 Z"/>
-    </g>
-    <g font-family="DejaVu Sans, Inter, system-ui, sans-serif" font-size="40"
-       font-weight="600" fill="#1F2328">
-      <text x="112" y="72">lê a tela do seu Android e decide</text>
-      <text x="112" y="138">compara por litro, não pela etiqueta</text>
-      <text x="112" y="204">monta o carrinho no aparelho</text>
-    </g>
-
-    <line x1="44" y1="230" x2="1060" y2="230" stroke="#D0D7DE" stroke-width="2"/>
-
-    <!-- and the one thing it refuses -->
-    <g fill="#CF222E">
-      <path d="M 44 252 l 9 -9 l 17 17 l 17 -17 l 9 9 l -17 17 l 17 17 l -9 9
-               l -17 -17 l -17 17 l -9 -9 l 17 -17 Z"/>
-    </g>
-    <text x="112" y="282" font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="44" font-weight="700" fill="#CF222E">pagar</text>
-    <text x="1060" y="282" text-anchor="end"
-          font-family="DejaVu Sans, Inter, system-ui, sans-serif"
-          font-size="44" font-weight="700" fill="#CF222E">RECUSADO</text>
+  <!-- the one idea, in three beats -->
+  <g font-family="DejaVu Sans, Inter, system-ui, sans-serif" font-size="58" font-weight="700">
+    <text x="88" y="284" fill="#1F2328">Lê o preço na tela do seu celular</text>
+    <text x="88" y="360" fill="#1F2328">e monta o carrinho.</text>
+    <text x="88" y="456" fill="#CF222E">Pagar é com você.</text>
   </g>
 
-  <!--
-    The card is shared on its own and cannot carry a paragraph of context, so
-    the product's maturity is part of the artwork rather than something the
-    reader is trusted to look up. "experimental" is the honest name for the
-    phone layer's state, not a legal disclaimer.
-  -->
-  <g transform="translate(88, 248)">
+  <!-- the small print that rewards a click -->
+  <line x1="88" y1="512" x2="1192" y2="512" stroke="#D0D7DE" stroke-width="2"/>
+  <g font-family="DejaVu Sans, Inter, system-ui, sans-serif" font-size="24" fill="#57606A">
+    <text x="88" y="552">Android físico</text>
+    <text x="392" y="552">dados em texto, na sua máquina</text>
+    <text x="948" y="552">sem chave de API</text>
   </g>
 </svg>
